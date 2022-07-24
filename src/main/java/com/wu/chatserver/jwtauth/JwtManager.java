@@ -2,11 +2,15 @@ package com.wu.chatserver.jwtauth;
 
 import io.jsonwebtoken.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import javax.enterprise.inject.Alternative;
 import java.util.Map;
 import java.util.Objects;
 
+@Alternative
+@NoArgsConstructor
 public class JwtManager {
     @Getter
     @Setter

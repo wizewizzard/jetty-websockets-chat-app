@@ -30,6 +30,7 @@ import org.eclipse.jetty.security.ConstraintSecurityHandler;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.security.Constraint;
 import org.eclipse.jetty.websocket.javax.server.config.JavaxWebSocketServletContainerInitializer;
@@ -55,19 +56,26 @@ public class ChatServer {
     }
 
     public void run() throws Exception {
+        String workingDir = System.getProperty("user.dir");
+        System.out.println("Current working directory : " + workingDir);
         Properties properties = readProperties();
 
         Server server = new Server(8080);
 
         ServletContextHandler context = new ServletContextHandler();
         context.setContextPath("/");
+        URL resource = ChatServer.class.getClassLoader().getResource("application.properties");
+        String replace = resource.toURI().toString().replace("/application.properties", "");
+        context.setBaseResource(Resource.newResource(replace));
         // Enable Weld + CDI
         context.setInitParameter(CdiServletContainerInitializer.CDI_INTEGRATION_ATTRIBUTE, CdiDecoratingListener.MODE);
         context.addServletContainerInitializer(new CdiServletContainerInitializer());
         context.addServletContainerInitializer(new org.jboss.weld.environment.servlet.EnhancedListener());
 
         context.setSecurityHandler(createSecurityHandler(properties));
-
+        context.addServlet(new ServletHolder(LoginServlet.class), "/login");
+        context.addServlet(new ServletHolder(RegisterServlet.class), "/register");
+        context.setErrorHandler(new ErrorHandler());
         server.setHandler(context);
         server.start();
         server.join();
@@ -83,6 +91,7 @@ public class ChatServer {
 
         ConstraintMapping cm = new ConstraintMapping();
         cm.setConstraint(constraint);
+        cm.setPathSpec("/chat");
 
         Objects.requireNonNull(properties.getProperty("jwt.issuer"));
         Objects.requireNonNull(properties.getProperty("jwt.secret"));
@@ -99,8 +108,8 @@ public class ChatServer {
 
     private Properties readProperties() {
         Properties properties = new Properties();
-        final InputStream stream = ChatServer.class
-                .getResourceAsStream("/application.properties");
+        final InputStream stream = ChatServer.class.getClassLoader()
+                .getResourceAsStream("application.properties");
         if (stream == null) {
             throw new RuntimeException("No properties file");
         }
