@@ -18,11 +18,30 @@
 
 package com.wu.chatserver;
 
+import com.wu.chatserver.jwtauth.JwtAuthenticator;
+import com.wu.chatserver.jwtauth.JwtManager;
+import com.wu.chatserver.servlet.*;
+import com.wu.chatserver.websocket.ChatSocket;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jetty.cdi.CdiDecoratingListener;
 import org.eclipse.jetty.cdi.CdiServletContainerInitializer;
+import org.eclipse.jetty.security.ConstraintMapping;
+import org.eclipse.jetty.security.ConstraintSecurityHandler;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.util.resource.Resource;
+import org.eclipse.jetty.util.security.Constraint;
+import org.eclipse.jetty.websocket.javax.server.config.JavaxWebSocketServletContainerInitializer;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.Objects;
+import java.util.Properties;
 
 @Slf4j
 public class ChatServer {
@@ -36,6 +55,8 @@ public class ChatServer {
     }
 
     public void run() throws Exception {
+        Properties properties = readProperties();
+
         Server server = new Server(8080);
 
         ServletContextHandler context = new ServletContextHandler();
@@ -45,9 +66,51 @@ public class ChatServer {
         context.addServletContainerInitializer(new CdiServletContainerInitializer());
         context.addServletContainerInitializer(new org.jboss.weld.environment.servlet.EnhancedListener());
 
+        context.setSecurityHandler(createSecurityHandler(properties));
+
         server.setHandler(context);
         server.start();
         server.join();
     }
+
+    private ConstraintSecurityHandler createSecurityHandler(Properties properties) {
+        ConstraintSecurityHandler security = new ConstraintSecurityHandler();
+
+        Constraint constraint = new Constraint();
+        constraint.setName("JWT_AUTH");
+        constraint.setRoles(new String[]{"user"});
+        constraint.setAuthenticate(true);
+
+        ConstraintMapping cm = new ConstraintMapping();
+        cm.setConstraint(constraint);
+
+        Objects.requireNonNull(properties.getProperty("jwt.issuer"));
+        Objects.requireNonNull(properties.getProperty("jwt.secret"));
+
+        security.addConstraintMapping(cm);
+        JwtAuthenticator jwtAuthenticator = new JwtAuthenticator();
+        jwtAuthenticator.setJwtManager(new JwtManager(properties.getProperty("jwt.issuer"),
+                Base64.getEncoder().encode(properties.getProperty("jwt.secret")
+                        .getBytes(StandardCharsets.UTF_8))));
+        security.setAuthenticator(jwtAuthenticator);
+        log.info("Security handler created: " + security);
+        return security;
+    }
+
+    private Properties readProperties() {
+        Properties properties = new Properties();
+        final InputStream stream = ChatServer.class
+                .getResourceAsStream("/application.properties");
+        if (stream == null) {
+            throw new RuntimeException("No properties file");
+        }
+        try {
+            properties.load(stream);
+        } catch (final IOException e) {
+            throw new RuntimeException("Configuration could not be loaded!");
+        }
+        return properties;
+    }
+
 
 }
