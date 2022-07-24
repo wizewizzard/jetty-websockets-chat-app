@@ -12,7 +12,7 @@ TODO: Descr
 
 ## Current state
 
-- [ ]  JWT Authentication
+- [x]  JWT Authentication
 - [ ]  Tracking chat room's members and their online status
 - [ ]  Users are allowed to create, search and connect or disconnect to a specific chat rooms
 - [ ]  And chatting obviously 
