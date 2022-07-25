@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Set;
 
 @Entity
+@Table(name = "chat_room")
 public class ChatRoom {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "chatRoomSeqGen")
@@ -18,10 +19,12 @@ public class ChatRoom {
     @Setter
     private Long id;
 
+    @Getter
+    @Setter
     private String name;
 
     @ManyToOne
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "created_by_user_id")
     @Getter
     @Setter
     private User createdBy;

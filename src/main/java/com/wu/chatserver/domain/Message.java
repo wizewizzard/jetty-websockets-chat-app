@@ -23,7 +23,7 @@ public class Message {
     private User createdBy;
 
     @ManyToOne
-    @JoinColumn(name = "chat_id")
+    @JoinColumn(name = "chat_room_id")
     @Getter
     @Setter
     private ChatRoom chatRoom;

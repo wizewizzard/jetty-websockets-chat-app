@@ -46,4 +46,9 @@ public abstract class GenericDaoSkeletal<K, T> implements GenericDao<K, T> {
     public void removeById(K id) {
         em.find(entityClass, id);
     }
+
+    @Override
+    public void remove(T entity) {
+        em.remove(entity);
+    }
 }
