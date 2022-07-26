@@ -43,7 +43,10 @@ class UserRepositoryTest {
         EntityManager em = emf.createEntityManager();
         try{
             em.getTransaction().begin();
-            testData.getUsers().stream().map(em::merge).forEach(em::remove);
+            testData.getUsers().stream().map(em::merge).forEach(r -> {
+                em.refresh(r);
+                em.remove(r);
+            });
             em.getTransaction().commit();
         }
         catch (Exception e){

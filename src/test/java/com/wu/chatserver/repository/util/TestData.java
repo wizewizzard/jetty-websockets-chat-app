@@ -11,8 +11,6 @@ public class TestData {
     @Getter
     private List<User> users;
     @Getter
-    private List<Message> messages;
-    @Getter
     private List<ChatRoom> chatRooms;
 
     public TestData(){
@@ -24,7 +22,6 @@ public class TestData {
 
         users = Collections.unmodifiableList(users);
         chatRooms = Collections.unmodifiableList(chatRooms);
-        messages = Collections.unmodifiableList(messages);
     }
 
     private void initUsers(){
@@ -71,10 +68,22 @@ public class TestData {
         chatRooms.add(chatRoom1);
 
         ChatRoom chatRoom2 = new ChatRoom();
-        chatRoom2.setName("Harry's chat");
+        chatRoom2.setName("Harry's chat #1");
         chatRoom2.setCreatedBy(harry);
         chatRoom2.addMember(harry);
         chatRooms.add(chatRoom2);
+
+        ChatRoom chatRoom3 = new ChatRoom();
+        chatRoom3.setName("Denny's chat");
+        chatRoom3.setCreatedBy(harry);
+        chatRoom3.addMember(harry);
+        chatRooms.add(chatRoom3);
+
+        ChatRoom chatRoom4 = new ChatRoom();
+        chatRoom4.setName("Harry's chat #2");
+        chatRoom4.setCreatedBy(harry);
+        chatRoom4.addMember(harry);
+        chatRooms.add(chatRoom4);
     }
     private void initMessages(){
         Objects.requireNonNull(users);
@@ -82,32 +91,36 @@ public class TestData {
 
         User julia = users.stream().filter(u -> u.getUserName().equals("Julia")).findFirst().orElseThrow();
         User jack = users.stream().filter(u -> u.getUserName().equals("Jack")).findFirst().orElseThrow();
+        User harry = users.stream().filter(u -> u.getUserName().equals("Harry")).findFirst().orElseThrow();
 
         ChatRoom juliasChatRoom = chatRooms.stream().filter(u -> u.getName().equals("Julia's chat")).findFirst().orElseThrow();
-
-
-        messages = new ArrayList<>();
+        ChatRoom harrysSecondChatRoom = chatRooms.stream().filter(u -> u.getName().equals("Harry's chat #2")).findFirst().orElseThrow();
 
         Message messageByJack1 = new Message();
         messageByJack1.setBody("Hi julia");
         messageByJack1.setCreatedBy(jack);
-        messageByJack1.setChatRoom(juliasChatRoom);
         messageByJack1.setPublishedAt(LocalDateTime.parse("2022-07-18T10:00:00Z", DateTimeFormatter.ISO_DATE_TIME));
-        messages.add(messageByJack1);
+        juliasChatRoom.addMessage(messageByJack1);
 
         Message messageByJulia1 = new Message();
         messageByJulia1.setBody("Hello jack!");
         messageByJulia1.setCreatedBy(julia);
-        messageByJulia1.setChatRoom(juliasChatRoom);
         messageByJulia1.setPublishedAt(LocalDateTime.parse("2022-07-18T11:00:00Z", DateTimeFormatter.ISO_DATE_TIME));
-        messages.add(messageByJulia1);
+        juliasChatRoom.addMessage(messageByJulia1);
 
         Message messageByJack2 = new Message();
         messageByJack2.setBody("It is a nice weather today isn't it?");
         messageByJack2.setCreatedBy(jack);
-        messageByJack2.setChatRoom(juliasChatRoom);
         messageByJack2.setPublishedAt(LocalDateTime.parse("2022-07-18T12:00:00Z", DateTimeFormatter.ISO_DATE_TIME));
-        messages.add(messageByJack2);
+        juliasChatRoom.addMessage(messageByJack2);
+
+        Message messageByHarry1 = new Message();
+        messageByHarry1.setBody("Lonely...");
+        messageByHarry1.setCreatedBy(harry);
+        messageByHarry1.setPublishedAt(LocalDateTime.parse("2022-07-18T13:00:00Z", DateTimeFormatter.ISO_DATE_TIME));
+        harrysSecondChatRoom.addMessage(messageByHarry1);
+
+
     }
     private void initUserSessions(){
         Objects.requireNonNull(users);
@@ -118,7 +131,7 @@ public class TestData {
         User harry = users.stream().filter(u -> u.getUserName().equals("Harry")).findFirst().orElseThrow();
 
         ChatRoom juliasChatRoom = chatRooms.stream().filter(u -> u.getName().equals("Julia's chat")).findFirst().orElseThrow();
-        ChatRoom harrysChatRoom = chatRooms.stream().filter(u -> u.getName().equals("Harry's chat")).findFirst().orElseThrow();
+        ChatRoom harrysChatRoom = chatRooms.stream().filter(u -> u.getName().equals("Harry's chat #1")).findFirst().orElseThrow();
 
         Set<UsersChatSession> juliasChatRoomSessions = juliasChatRoom.getUsersChatSessions();
         Set<UsersChatSession> harrysChatRoomSessions = harrysChatRoom.getUsersChatSessions();

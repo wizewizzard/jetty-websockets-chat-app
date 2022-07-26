@@ -31,7 +31,6 @@ class ChatRoomRepositoryTest {
             em.getTransaction().begin();
             testData.getUsers().forEach(em::persist);
             testData.getChatRooms().forEach(em::persist);
-            testData.getMessages().forEach(em::persist);
             em.getTransaction().commit();
         } catch (Exception e) {
             em.getTransaction().rollback();
@@ -44,9 +43,14 @@ class ChatRoomRepositoryTest {
         EntityManager em = emf.createEntityManager();
         try {
             em.getTransaction().begin();
-            testData.getMessages().stream().map(em::merge).forEach(em::remove);
-            testData.getChatRooms().stream().map(em::merge).forEach(em::remove);
-            testData.getUsers().stream().map(em::merge).forEach(em::remove);
+            testData.getChatRooms().stream().map(em::merge).forEach(r -> {
+                em.refresh(r);
+                em.remove(r);
+            });
+            testData.getUsers().stream().map(em::merge).forEach(r -> {
+                em.refresh(r);
+                em.remove(r);
+            });
             em.getTransaction().commit();
         } catch (Exception e) {
             em.getTransaction().rollback();
@@ -76,9 +80,9 @@ class ChatRoomRepositoryTest {
         assertThat(chatRooms.get(0).getMembers()).contains(users.get(0));
         assertThat(chatRooms.get(0).getMembers()).doesNotContain(users.get(2));
 
-        assertThat(chatRoomRepositoryUT.isUserMemberOfChatRoom(chatRooms.get(0).getId(), users.get(0).getId()))
+        assertThat(chatRoomRepositoryUT.isUserMemberOfChatRoom(chatRooms.get(0), users.get(0)))
                 .isTrue();
-        assertThat(chatRoomRepositoryUT.isUserMemberOfChatRoom(chatRooms.get(0).getId(), users.get(2).getId()))
+        assertThat(chatRoomRepositoryUT.isUserMemberOfChatRoom(chatRooms.get(0), users.get(2)))
                 .isFalse();
     }
 }

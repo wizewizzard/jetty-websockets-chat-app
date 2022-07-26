@@ -37,7 +37,6 @@ class UsersChatSessionRepositoryTest {
             em.getTransaction().begin();
             testData.getUsers().forEach(em::persist);
             testData.getChatRooms().forEach(em::persist);
-            testData.getMessages().forEach(em::persist);
             em.getTransaction().commit();
         } catch (Exception e) {
             em.getTransaction().rollback();
@@ -50,9 +49,14 @@ class UsersChatSessionRepositoryTest {
         EntityManager em = emf.createEntityManager();
         try {
             em.getTransaction().begin();
-            testData.getMessages().stream().map(em::merge).forEach(em::remove);
-            testData.getChatRooms().stream().map(em::merge).forEach(em::remove);
-            testData.getUsers().stream().map(em::merge).forEach(em::remove);
+            testData.getChatRooms().stream().map(em::merge).forEach(r -> {
+                em.refresh(r);
+                em.remove(r);
+            });
+            testData.getUsers().stream().map(em::merge).forEach(r -> {
+                em.refresh(r);
+                em.remove(r);
+            });
             em.getTransaction().commit();
         } catch (Exception e) {
             em.getTransaction().rollback();
