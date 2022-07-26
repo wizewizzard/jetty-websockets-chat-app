@@ -4,9 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import javax.persistence.*;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Entity
 @Table(name = "chat_room")
@@ -31,25 +29,52 @@ public class ChatRoom {
 
     @ManyToMany
     @JoinTable(name = "chats_members",
-        joinColumns = @JoinColumn(name = "chat_id", referencedColumnName = "chat_room_id", nullable = false),
-        inverseJoinColumns = @JoinColumn(name = "user_id", referencedColumnName = "user_id", nullable = false)
+            joinColumns = @JoinColumn(name = "chat_id", referencedColumnName = "chat_room_id", nullable = false),
+            inverseJoinColumns = @JoinColumn(name = "user_id", referencedColumnName = "user_id", nullable = false)
     )
     @Getter
     private Set<User> members = new HashSet<>();
 
     @Getter
-    @OneToMany(mappedBy = "chatSessionId.chatRoom", cascade ={ CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE}, orphanRemoval = true)
+    @OneToMany(mappedBy = "chatRoom", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Message> messages = new ArrayList<>();
+
+    @Getter
+    @OneToMany(mappedBy = "chatSessionId.chatRoom", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<UsersChatSession> usersChatSessions = new HashSet<>();
 
-    public void addMember(User user){
+    public void addMember(User user) {
         members.add(user);
         UsersChatSession chatSession = new UsersChatSession();
         chatSession.setChatSessionId(new ChatSessionId(this, user));
         usersChatSessions.add(chatSession);
     }
 
-    public void removeMember(User user){
+    public void removeMember(User user) {
         members.remove(user);
         usersChatSessions.removeIf(chatSession -> chatSession.getChatSessionId().getUser().equals(user));
+    }
+
+    public void addMessage(Message message) {
+        messages.add(message);
+        message.setChatRoom(this);
+    }
+
+    public void removeMessage(Message message) {
+        messages.remove(message);
+        message.setChatRoom(null);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ChatRoom chatRoom = (ChatRoom) o;
+        return name.equals(chatRoom.name) && createdBy.equals(chatRoom.createdBy);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, createdBy);
     }
 }
