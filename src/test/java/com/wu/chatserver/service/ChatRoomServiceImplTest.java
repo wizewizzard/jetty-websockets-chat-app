@@ -20,11 +20,9 @@ import static org.assertj.core.api.Assertions.*;
 class ChatRoomServiceImplTest {
     static EntityManagerFactory emf;
     ChatRoomServiceImpl chatRoomServiceUT;
-
     private EntityManager em;
     private ChatRoomRepository chatRoomRepository;
     private UserRepository userRepository;
-
     private static final TestData testData = new TestData();
 
     @BeforeAll
@@ -35,7 +33,6 @@ class ChatRoomServiceImplTest {
             em.getTransaction().begin();
             testData.getUsers().forEach(em::persist);
             testData.getChatRooms().forEach(em::persist);
-            testData.getMessages().forEach(em::persist);
             em.getTransaction().commit();
         } catch (Exception e) {
             em.getTransaction().rollback();
@@ -51,9 +48,14 @@ class ChatRoomServiceImplTest {
         EntityManager em = emf.createEntityManager();
         try {
             em.getTransaction().begin();
-            testData.getMessages().stream().map(em::merge).forEach(em::remove);
-            testData.getChatRooms().stream().map(em::merge).forEach(em::remove);
-            testData.getUsers().stream().map(em::merge).forEach(em::remove);
+            testData.getChatRooms().stream().map(em::merge).forEach(r -> {
+                em.refresh(r);
+                em.remove(r);
+            });
+            testData.getUsers().stream().map(em::merge).forEach(r -> {
+                em.refresh(r);
+                em.remove(r);
+            });
             em.getTransaction().commit();
         } catch (Exception e) {
             em.getTransaction().rollback();

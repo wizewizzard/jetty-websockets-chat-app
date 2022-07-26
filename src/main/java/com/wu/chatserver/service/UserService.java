@@ -1,11 +1,15 @@
 package com.wu.chatserver.service;
 
+import com.wu.chatserver.domain.ChatRoom;
 import com.wu.chatserver.domain.User;
+import com.wu.chatserver.domain.UsersChatSession;
 import com.wu.chatserver.dto.UserDTO;
 import com.wu.chatserver.exception.AuthenticationException;
 import com.wu.chatserver.exception.RegistrationException;
 import com.wu.chatserver.jwtauth.JwtManager;
+import com.wu.chatserver.repository.ChatRoomDao;
 import com.wu.chatserver.repository.UserDao;
+import com.wu.chatserver.repository.UsersChatSessionDao;
 import lombok.NoArgsConstructor;
 import org.jasypt.util.password.PasswordEncryptor;
 
@@ -13,30 +17,37 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
+import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.Optional;
 
 @ApplicationScoped
 @NoArgsConstructor
 public class UserService {
     private PasswordEncryptor passwordEncryptor;
     private EntityManager em;
-    private UserDao userRepository;
+    private UserDao userDao;
+    private ChatRoomDao chatRoomDao;
+
+    private UsersChatSessionDao sessionDao;
     private JwtManager jwtManager;
 
     @Inject
     public UserService(EntityManager em,
                        PasswordEncryptor passwordEncryptor,
-                       UserDao userRepository,
+                       UserDao userDao,
+                       ChatRoomDao chatRoomDao,
+                       UsersChatSessionDao sessionDao,
                        JwtManager jwtManager) {
         this.passwordEncryptor = passwordEncryptor;
-        this.userRepository = userRepository;
+        this.userDao = userDao;
+        this.chatRoomDao = chatRoomDao;
+        this.sessionDao = sessionDao;
         this.em = em;
         this.jwtManager = jwtManager;
     }
 
     public void registerUser(UserDTO.Request.Registration userRegistrationDTO) {
-        if(!userRepository.uniqueUserNameAndEmail(userRegistrationDTO.getUserName(), userRegistrationDTO.getEmail())){
+        if(!userDao.uniqueUserNameAndEmail(userRegistrationDTO.getUserName(), userRegistrationDTO.getEmail())){
             throw new RegistrationException("User with specified user name or email already exists");
         }
 
@@ -48,7 +59,7 @@ public class UserService {
         EntityTransaction tx = em.getTransaction();
         try {
             tx.begin();
-            userRepository.save(user);
+            userDao.save(user);
             tx.commit();
         } catch (Throwable e) {
             tx.rollback();
@@ -57,10 +68,20 @@ public class UserService {
     }
 
     public String loginUser(UserDTO.Request.Login loginDto) {
-        User user = userRepository.findUserByUserName(loginDto.getUserName())
+        User user = userDao.findUserByUserName(loginDto.getUserName())
                 .orElseThrow(() -> new AuthenticationException("Wrong credentials"));
         if(!passwordEncryptor.checkPassword(loginDto.getPassword(), user.getPassword()))
             throw  new AuthenticationException("Wrong credentials");
         return jwtManager.generate(Map.of("userId", user.getId(),"userName", user.getUserName()));
+    }
+
+
+    public void setUserOnlineStatus(Long chatRoomId, Long userId, UsersChatSession.OnlineStatus onlineStatus) {
+        ChatRoom chatRoom = chatRoomDao.findById(chatRoomId).orElseThrow();
+        User user = userDao.findById(userId).orElseThrow();
+        if(chatRoomDao.isUserMemberOfChatRoom(chatRoom, user)){
+            sessionDao.setOnlineStatus(chatRoom, user, onlineStatus, LocalDateTime.now());
+        }
+
     }
 }

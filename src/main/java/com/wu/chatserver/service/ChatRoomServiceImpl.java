@@ -2,6 +2,7 @@ package com.wu.chatserver.service;
 
 import com.wu.chatserver.domain.ChatRoom;
 import com.wu.chatserver.domain.User;
+import com.wu.chatserver.domain.UsersChatSession;
 import com.wu.chatserver.dto.ChatRoomDTO;
 import com.wu.chatserver.exception.NotEnoughRightsException;
 import com.wu.chatserver.repository.ChatRoomRepository;
