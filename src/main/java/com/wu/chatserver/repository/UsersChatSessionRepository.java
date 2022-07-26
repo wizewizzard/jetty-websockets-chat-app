@@ -57,9 +57,12 @@ public class UsersChatSessionRepository extends GenericDaoSkeletal<ChatSessionId
                 chatSessions.get(UsersChatSession_.STARTED_AT).alias("startedAt"),
                 chatSessions.get(UsersChatSession_.ENDED_AT).alias("endedAt")
         );
-        Predicate chatEq = cb.equal(root.get(ChatRoom_.id), chatRoom.getId());
+
+        ParameterExpression<Long> chatId = cb.parameter(Long.class);
+        Predicate chatEq = cb.equal(root.get(ChatRoom_.id), chatId);
+
         query.where(chatEq);
-        List<Tuple> tuples = em.createQuery(query).getResultList();
+        List<Tuple> tuples = em.createQuery(query).setParameter(chatId, chatRoom.getId()).getResultList();
         List<UserDTO.Response.UserOnlineStatus> userOnlineStatuses = new ArrayList<>();
         tuples.forEach(tuple -> {
             UserDTO.Response.UserOnlineStatus userOnlineStatus = new UserDTO.Response.UserOnlineStatus();
