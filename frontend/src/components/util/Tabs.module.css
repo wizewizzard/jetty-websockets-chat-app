@@ -1,0 +1,15 @@
+.tab-names{
+    display: flex;
+    flex-direction: row;
+    row-gap: 5px;
+}
+.tab-name{
+    flex: 1 1 auto;
+    text-align: center;
+    font-weight: bolder;
+    font-size: 14px;
+    cursor: pointer;
+}
+.tab-name.active{
+    background-color: rgb(172, 172, 172);
+}
