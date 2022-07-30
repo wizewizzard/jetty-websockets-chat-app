@@ -20,7 +20,10 @@ package com.wu.chatserver;
 
 import com.wu.chatserver.jwtauth.JwtAuthenticator;
 import com.wu.chatserver.jwtauth.JwtManager;
-import com.wu.chatserver.servlet.*;
+import com.wu.chatserver.servlet.ErrorHandler;
+import com.wu.chatserver.servlet.LoginServlet;
+import com.wu.chatserver.servlet.RegisterServlet;
+import com.wu.chatserver.servlet.TokenVerifyServlet;
 import com.wu.chatserver.websocket.ChatSocket;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jetty.cdi.CdiDecoratingListener;
@@ -28,7 +31,6 @@ import org.eclipse.jetty.cdi.CdiServletContainerInitializer;
 import org.eclipse.jetty.security.ConstraintMapping;
 import org.eclipse.jetty.security.ConstraintSecurityHandler;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.resource.Resource;
@@ -37,7 +39,6 @@ import org.eclipse.jetty.websocket.javax.server.config.JavaxWebSocketServletCont
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -57,10 +58,11 @@ public class ChatServer {
 
     public void run() throws Exception {
         String workingDir = System.getProperty("user.dir");
+        int port = 8080;
         System.out.println("Current working directory : " + workingDir);
         Properties properties = readProperties();
 
-        Server server = new Server(8080);
+        Server server = new Server(port);
 
         ServletContextHandler context = new ServletContextHandler();
         context.setContextPath("/");
@@ -73,12 +75,13 @@ public class ChatServer {
         context.addServletContainerInitializer(new org.jboss.weld.environment.servlet.EnhancedListener());
 
         context.setSecurityHandler(createSecurityHandler(properties));
-        context.addServlet(new ServletHolder(LoginServlet.class), "/login");
-        context.addServlet(new ServletHolder(RegisterServlet.class), "/register");
+        context.addServlet(new ServletHolder(LoginServlet.class), "/api/auth/signin");
+        context.addServlet(new ServletHolder(RegisterServlet.class), "/api/auth/signup");
         context.addServlet(new ServletHolder(TokenVerifyServlet.class), "/api/auth/verify");
         context.setErrorHandler(new ErrorHandler());
         server.setHandler(context);
         server.start();
+        log.info("Server started on port {}", port);
         server.join();
     }
 
