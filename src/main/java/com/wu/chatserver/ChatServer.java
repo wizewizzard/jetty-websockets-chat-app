@@ -88,19 +88,25 @@ public class ChatServer {
     private ConstraintSecurityHandler createSecurityHandler(Properties properties) {
         ConstraintSecurityHandler security = new ConstraintSecurityHandler();
 
+        Constraint noConstraint = ConstraintSecurityHandler.createConstraint("No auth", false, null, 0);
+
         Constraint constraint = new Constraint();
         constraint.setName("JWT_AUTH");
         constraint.setRoles(new String[]{"user"});
         constraint.setAuthenticate(true);
 
-        ConstraintMapping cm = new ConstraintMapping();
+        /*ConstraintMapping cm = new ConstraintMapping();
         cm.setConstraint(constraint);
-        cm.setPathSpec("/chat");
+        cm.setPathSpec("/chat/*");*/
+
+        ConstraintMapping authCm = new ConstraintMapping();
+        authCm.setPathSpec("/api/auth/*");
+        authCm.setConstraint(noConstraint);
 
         Objects.requireNonNull(properties.getProperty("jwt.issuer"));
         Objects.requireNonNull(properties.getProperty("jwt.secret"));
 
-        security.addConstraintMapping(cm);
+        security.setConstraintMappings(new ConstraintMapping[]{authCm});
         JwtAuthenticator jwtAuthenticator = new JwtAuthenticator();
         jwtAuthenticator.setJwtManager(new JwtManager(properties.getProperty("jwt.issuer"),
                 Base64.getEncoder().encode(properties.getProperty("jwt.secret")

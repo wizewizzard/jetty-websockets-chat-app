@@ -9,6 +9,7 @@ import org.eclipse.jetty.security.Authenticator;
 import org.eclipse.jetty.security.DefaultUserIdentity;
 import org.eclipse.jetty.security.ServerAuthException;
 import org.eclipse.jetty.security.UserAuthentication;
+import org.eclipse.jetty.security.authentication.DeferredAuthentication;
 import org.eclipse.jetty.server.Authentication;
 
 import javax.inject.Inject;
@@ -57,7 +58,8 @@ public class JwtAuthenticator implements Authenticator {
                                           ServletResponse response,
                                           boolean mandatory) throws ServerAuthException {
         log.trace("validateRequest called");
-        log.debug("I am " + this);
+        if (!mandatory)
+            return Authentication.UNAUTHENTICATED;
 
         HttpServletRequest httpReq = (HttpServletRequest) request;
         String token = getToken(httpReq);
