@@ -3,6 +3,7 @@ package com.wu.chatserver.service;
 import com.wu.chatserver.domain.ChatRoom;
 import com.wu.chatserver.domain.User;
 import com.wu.chatserver.domain.UsersChatSession;
+import com.wu.chatserver.dto.TokenDTO;
 import com.wu.chatserver.dto.UserDTO;
 import com.wu.chatserver.exception.AuthenticationException;
 import com.wu.chatserver.exception.RegistrationException;
@@ -10,6 +11,8 @@ import com.wu.chatserver.jwtauth.JwtManager;
 import com.wu.chatserver.repository.ChatRoomDao;
 import com.wu.chatserver.repository.UserDao;
 import com.wu.chatserver.repository.UsersChatSessionDao;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
 import lombok.NoArgsConstructor;
 import org.jasypt.util.password.PasswordEncryptor;
 
@@ -75,7 +78,13 @@ public class UserService {
         return jwtManager.generate(Map.of("userId", user.getId(),"userName", user.getUserName()));
     }
 
+    public UserDTO.Response.UserInfo verifyToken(TokenDTO tokenDTO){
+        Jws<Claims> claimsJws = jwtManager.parse(tokenDTO.getToken());
+        Long userId = claimsJws.getBody().get("userId", Long.class);
+        User user = userDao.findById(userId).orElseThrow(() -> new AuthenticationException("Invalid token"));
+        return new UserDTO.Response.UserInfo(user.getId(), user.getUserName());
 
+    }
     public void setUserOnlineStatus(Long chatRoomId, Long userId, UsersChatSession.OnlineStatus onlineStatus) {
         ChatRoom chatRoom = chatRoomDao.findById(chatRoomId).orElseThrow();
         User user = userDao.findById(userId).orElseThrow();

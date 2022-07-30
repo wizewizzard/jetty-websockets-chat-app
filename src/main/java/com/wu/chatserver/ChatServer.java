@@ -75,6 +75,7 @@ public class ChatServer {
         context.setSecurityHandler(createSecurityHandler(properties));
         context.addServlet(new ServletHolder(LoginServlet.class), "/login");
         context.addServlet(new ServletHolder(RegisterServlet.class), "/register");
+        context.addServlet(new ServletHolder(TokenVerifyServlet.class), "/api/auth/verify");
         context.setErrorHandler(new ErrorHandler());
         server.setHandler(context);
         server.start();

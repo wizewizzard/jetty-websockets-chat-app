@@ -39,15 +39,23 @@ public enum UserDTO {
 
     public enum Response{
         ;
-        @Getter
-        @Setter
         @NoArgsConstructor
+        @AllArgsConstructor
+        @Data
         public static class UserOnlineStatus implements Id, Name, OnlineStatus{
             private Long id;
             private String userName;
             private LocalDateTime startedAt;
             private LocalDateTime endedAt;
             private UsersChatSession.OnlineStatus onlineStatus;
+        }
+
+        @NoArgsConstructor
+        @AllArgsConstructor
+        @Data
+        public static class UserInfo implements Id, Name{
+            private Long id;
+            private String userName;
         }
     }
 }
