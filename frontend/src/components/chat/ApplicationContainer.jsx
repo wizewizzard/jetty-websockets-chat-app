@@ -8,37 +8,61 @@ import styles from './ApplicationContainer.module.css'
 import Tabs from '../util/Tabs';
 import ChatRoomCreate from './chat-management/chat-room-create/ChatRoomCreate';
 import ChatRoomSearch from './chat-management/chat-room-search/ChatRoomSearch';
+import AuthService from '../../service/AuthService';
+import { Link } from 'react-router-dom';
+
 
 export const LoginContext = React.createContext();
 
 export default function ApplicationContainer() {
-    const [loading, setloading] = useState(true); 
-    const [loggedIn, setloggedIn] = useState(true);
+    const [loaded, setLoaded] = useState(false); 
+    const [loggedIn, setLoggedIn] = useState(false);
+    const [userName, setUserName] = useState('');
 
     useEffect(() => {
     console.log("Verifying the token");
-    const token = localStorage.getItem("bearer-token");
-    if(token){
-        console.log("Calling server to verify token");
-    }
-    else{
-        setloading(false);
-        setloggedIn(true);
-    }
-
+    AuthService
+        .verify()
+        .then(resp => {
+            if(resp.status === 200){
+                resp.json().then(data => {
+                    console.log('Verified')
+                    setLoggedIn(true);
+                    setUserName(data.userName);
+                });
+            }
+            else{
+                console.log('Not verified')
+                AuthService.logout();
+                setLoggedIn(false);
+            }
+            setLoaded(true);
+        })
+        .catch(e => {
+            AuthService.logout();
+            setLoggedIn(false);
+            setLoaded(true);
+        });
     }, []);
 
+    console.log('Render')
   return (
     <>
-    <Loader visible={loading} message = {'Verifying your token'}/>
-    <LoginContext.Provider value={loggedIn}>
+    {!loaded ? 
+        <Loader visible={!loaded} message = {'Verifying your token'}/>
+        :
+        <LoginContext.Provider value={loggedIn}>
         {loggedIn ? <>
         <div className={styles['double-column-container']}>
             <div className={styles['info-column']}>
                 <h6>Your are logged in as</h6>
                 
                 <div className={styles['profile-box']}>
-                    <ProfileInfo />
+                    <ProfileInfo userName={userName}/>
+                    <Link className={styles["logout"]} to='#' onClick={() => {
+                        AuthService.logout();
+                        setLoggedIn(false);
+                        }}>Logout</Link>
                 </div>
                 <div className={styles['chat-management-box']}>
                     <Tabs tabs = {
@@ -78,7 +102,8 @@ export default function ApplicationContainer() {
         </> :
             <ToStart />
         }
-    </LoginContext.Provider>
+        </LoginContext.Provider>
+    }
     </>
   )
 }
