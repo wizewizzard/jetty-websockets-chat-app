@@ -39,10 +39,12 @@ public class RegisterServlet extends HttpServlet {
         log.info("Registering user");
         try{
             UserDTO.Request.Registration registration = mapper.readValue(req.getReader(), UserDTO.Request.Registration.class);
-            if(!validate(registration))
+            if(!validate(registration)){
                 resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "User name, email and password are mandatory");
+                return;
+            }
             userService.registerUser(registration);
-            resp.setStatus(HttpServletResponse.SC_OK);
+            resp.setStatus(HttpServletResponse.SC_CREATED);
         }
         catch (DatabindException exception){
             log.debug("Wrong data format");
