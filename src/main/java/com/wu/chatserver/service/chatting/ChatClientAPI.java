@@ -1,8 +1,9 @@
 package com.wu.chatserver.service.chatting;
 
+import com.wu.chatserver.exception.ChatException;
+
 public interface ChatClientAPI {
-    public void tryConnect();
     public void disconnect();
-    public void sendMessage();
-    void pollMessage();
+    public void  sendMessage(Message message) throws ChatException;
+    public Message pollMessage() throws ChatException;
 }

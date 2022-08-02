@@ -1,19 +1,12 @@
 package com.wu.chatserver.service.chatting;
 
-import com.wu.chatserver.domain.User;
-import com.wu.chatserver.exception.ChatException;
+public interface ChatRoom extends Runnable{
 
-public interface ChatRoom {
+    public void addMembership(RoomMembership membership);
 
-    /**
-     * Initialize a chat room from domain object
-     */
-    void init(com.wu.chatserver.domain.ChatRoom chatRoom);
+    public void removeMembership(RoomMembership membership);
 
-    public void addMember(User credentials);
-
-    public void removeUser(User credentials);
-
-    public void sendMessage(User credentials, String message);
+    public void sendMessage(RoomMembership source, Message message);
+    public boolean isRunning();
 
 }

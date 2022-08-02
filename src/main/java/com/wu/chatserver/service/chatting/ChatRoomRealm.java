@@ -3,6 +3,7 @@ package com.wu.chatserver.service.chatting;
 import com.wu.chatserver.exception.ChatException;
 
 import java.util.Optional;
+import java.util.function.Supplier;
 
 public interface ChatRoomRealm {
         /**
@@ -11,7 +12,7 @@ public interface ChatRoomRealm {
          * @return
          * @throws ChatException
          */
-        public MessageRouter tryConnect(String credentials) throws ChatException;
+        public ChatClientAPI tryConnect(ConnectionCredentials credentials) throws ChatException;
         /**
          * Makes user go offline in all chat rooms he is member of
          * @param credentials
@@ -20,11 +21,11 @@ public interface ChatRoomRealm {
          */
         public void disconnect(String credentials);
 
-        /**
+/*        *//**
          * Get chat room instance by id
          * @param chatRoomId
          * @return
-         */
-        public Optional<ChatRoom> getChatRoom(Long chatRoomId);
+         *//*
+        public Optional<ChatRoom> getChatRoom(Long chatRoomId);*/
 
 }

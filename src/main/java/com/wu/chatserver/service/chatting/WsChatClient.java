@@ -1,33 +1,39 @@
 package com.wu.chatserver.service.chatting;
 
+import com.wu.chatserver.exception.ChatException;
+
+import java.util.concurrent.BlockingQueue;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
 public class WsChatClient implements ChatClientAPI{
+    private final Supplier<Message> pollMessage;
+    private final Runnable onDisconnect;
+    private final Consumer<Message> messageSender;
 
-    private final ChatRoomRealm chatRoomRealm;
-    private final Object credentials;
-
-    public WsChatClient(ChatRoomRealm chatRoomRealm,
-                        Object credentials){
-        this.chatRoomRealm = chatRoomRealm;
-        this.credentials = credentials;
+    public WsChatClient(
+                        Consumer<Message> messageSender,
+                        Supplier<Message> pollMessage,
+                        Runnable onDisconnect
+                        ){
+        this.messageSender = messageSender;
+        this.pollMessage = pollMessage;
+        this.onDisconnect = onDisconnect;
     }
 
-    @Override
-    public void tryConnect() {
-
-    }
 
     @Override
     public void disconnect() {
-
+        onDisconnect.run();
     }
 
     @Override
-    public void sendMessage() {
-
+    public void sendMessage(Message message) {
+        messageSender.accept(message);
     }
 
     @Override
-    public void pollMessage() {
-
+    public Message pollMessage() throws ChatException{
+        return  pollMessage.get();
     }
 }
