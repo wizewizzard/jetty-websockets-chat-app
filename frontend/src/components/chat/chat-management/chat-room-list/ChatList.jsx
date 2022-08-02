@@ -1,6 +1,8 @@
-import React, {useState, useEffect} from 'react'
+import React, {useState, useEffect, useContext} from 'react'
 import Loader from '../../../static/Loader';
-
+import ChatInfo from './ChatInfo';
+import { ChatRoomContext } from '../../../../context/ChatRoomContext';
+import ChatService from '../../../../service/ChatService';
 import styles from './ChatList.module.css'
 
 export const chatStatus = { 
@@ -9,42 +11,55 @@ export const chatStatus = {
   Disconnected: 'Disconnected'
 }
 
-export default function ChatList({items}) {
-  items = [
-    {
-      name: "Bob's chat",
-      status: chatStatus.Connected
-    },
-    {
-      name: "Boooo's chatddddddddddddddddddddddd dddddddd",
-      status: chatStatus.Disconnected
-    },
-    {
-      name: "Boooo's chat",
-      status: chatStatus.Connecting
-    }
-  ];
+export default function ChatList() {
+  const [loaded, setLoaded] = useState(false)
+  const [chatRooms, setChatRooms] = useState([])
+
+  useEffect(() => {
+    console.log('Rerendered')
+  })
+
+  useEffect(() => {
+    console.log('Mounted')
+  }, []);
+
+  useEffect(() => {
+    setLoaded(false);
+      ChatService
+      .getUserChatRooms()
+      .then(resp => {
+        if(resp.status === 200){
+            resp.json().then(data => {
+              setChatRooms(data);
+              setLoaded(true);
+            });
+        }
+        else{
+          //TODO: error process
+          setLoaded(true);
+        }
+    })
+
+    }, [])
+  
 
   return (
     <>
-      <section className={styles["chat-list"]}>
-        {items.map((c, i) => {
-          return(
-            <article key = {i} className={styles["chat-info"]}>
-            <div className={styles["chat-room-name"]}>{c.name}</div>
-            <div className={styles["chat-actions"]}>
-            { (() => {
-              switch(c.status){
-                case chatStatus.Connected: 
-                  return (<><a href='#'>Disconnect</a><a href='#'>Leave</a></>);
-                case chatStatus.Disconnected: 
-                  return (<><a href='#'>Connect</a><a href='#'>Leave</a></>);
-            }})()}
-            </div>
-          </article>
-          )
-        })}
-      </section>
+      <div className={styles["listing-box"]}>
+      {!loaded ? 
+          <Loader visible={!loaded} message = {'Loading chat rooms'}/>
+          :
+          
+          <section className={styles["chat-list"]}>
+            {chatRooms.map((c, i) => {
+              return(
+                <ChatInfo key = {i} chatRoom={c} />
+              )
+            })}
+          </section>
+        
+        }
+      </div>
     </>
   )
 }
