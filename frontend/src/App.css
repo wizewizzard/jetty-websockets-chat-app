@@ -84,11 +84,11 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 1em;
   font-weight: bold;
 }
 .starter p{
-  font-size: 18px;
+  font-size: 2em;
 }
 .lds-ring {
   width: 80px;
