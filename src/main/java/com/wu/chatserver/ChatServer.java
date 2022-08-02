@@ -20,10 +20,7 @@ package com.wu.chatserver;
 
 import com.wu.chatserver.jwtauth.JwtAuthenticator;
 import com.wu.chatserver.jwtauth.JwtManager;
-import com.wu.chatserver.servlet.ErrorHandler;
-import com.wu.chatserver.servlet.LoginServlet;
-import com.wu.chatserver.servlet.RegisterServlet;
-import com.wu.chatserver.servlet.TokenVerifyServlet;
+import com.wu.chatserver.servlet.*;
 import com.wu.chatserver.websocket.ChatSocket;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jetty.cdi.CdiDecoratingListener;
@@ -78,6 +75,8 @@ public class ChatServer {
         context.addServlet(new ServletHolder(LoginServlet.class), "/api/auth/signin");
         context.addServlet(new ServletHolder(RegisterServlet.class), "/api/auth/signup");
         context.addServlet(new ServletHolder(TokenVerifyServlet.class), "/api/auth/verify");
+        context.addServlet(new ServletHolder(ChatManagementServlet.class), "/api/chat");
+        context.addServlet(new ServletHolder(ChatMembershipServlet.class), "/api/chat/membership/*");
         context.setErrorHandler(new ErrorHandler());
         server.setHandler(context);
         server.start();
@@ -95,9 +94,9 @@ public class ChatServer {
         constraint.setRoles(new String[]{"user"});
         constraint.setAuthenticate(true);
 
-        /*ConstraintMapping cm = new ConstraintMapping();
+        ConstraintMapping cm = new ConstraintMapping();
         cm.setConstraint(constraint);
-        cm.setPathSpec("/chat/*");*/
+        cm.setPathSpec("/api/chat/*");
 
         ConstraintMapping authCm = new ConstraintMapping();
         authCm.setPathSpec("/api/auth/*");
@@ -106,7 +105,7 @@ public class ChatServer {
         Objects.requireNonNull(properties.getProperty("jwt.issuer"));
         Objects.requireNonNull(properties.getProperty("jwt.secret"));
 
-        security.setConstraintMappings(new ConstraintMapping[]{authCm});
+        security.setConstraintMappings(new ConstraintMapping[]{authCm, cm});
         JwtAuthenticator jwtAuthenticator = new JwtAuthenticator();
         jwtAuthenticator.setJwtManager(new JwtManager(properties.getProperty("jwt.issuer"),
                 Base64.getEncoder().encode(properties.getProperty("jwt.secret")

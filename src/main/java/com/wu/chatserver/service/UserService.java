@@ -22,6 +22,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Optional;
 
 @ApplicationScoped
 @NoArgsConstructor
@@ -85,6 +86,10 @@ public class UserService {
         return new UserDTO.Response.UserInfo(user.getId(), user.getUserName());
 
     }
+
+    public Optional<User> getUserByUserName(String userName){
+        return userDao.findUserByUserName(userName);
+    }
     public void setUserOnlineStatus(Long chatRoomId, Long userId, UsersChatSession.OnlineStatus onlineStatus) {
         ChatRoom chatRoom = chatRoomDao.findById(chatRoomId).orElseThrow();
         User user = userDao.findById(userId).orElseThrow();
@@ -93,4 +98,5 @@ public class UserService {
         }
 
     }
+
 }
