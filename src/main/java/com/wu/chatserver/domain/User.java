@@ -5,6 +5,7 @@ import lombok.Setter;
 
 import javax.persistence.*;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -33,6 +34,9 @@ public class User {
     @OneToMany(mappedBy = "chatSessionId.user", cascade = CascadeType.REMOVE)
     private Set<UsersChatSession> chatSessions = new HashSet<>();
 
+    @Getter
+    @ManyToMany(mappedBy = "members")
+    private List<ChatRoom> chatRooms;
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
