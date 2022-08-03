@@ -22,8 +22,6 @@ public class RoomMembership {
             this.user = user;
             this.messageHandler = messageHandler;
         }
-
-
         public void handleMessage(Message message){
             this.messageHandler.accept(message);
         }

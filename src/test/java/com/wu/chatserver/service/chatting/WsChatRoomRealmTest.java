@@ -226,6 +226,10 @@ class WsChatRoomRealmTest {
         }
     }
 
+    /**
+     * This test passes if environment variable RoomUpTime is set to 5100+ ms
+     * It is difficult to create valid assertions here. So based on logs, it seems working correctly
+     */
     @Test
     public void shouldStopAndRestartRoom(){
         String userName = "TestUser";
@@ -240,15 +244,51 @@ class WsChatRoomRealmTest {
         Mockito.when(user.getChatRooms()).thenReturn(List.of(chatRoomDomain));
 
         Runnable client = () -> {
-            final ChatApi api =  realm.tryConnect(() -> userName);
+            ChatClientAPI api = new ChatClientAPI(realm);
+            api.connect(() -> userName);
             phaser.arriveAndAwaitAdvance();
             api.sendMessage(new Message(chatRoomDomain.getId(),"Hello!"));
             phaser.arriveAndAwaitAdvance();
             api.disconnect();
             phaser.arriveAndAwaitAdvance();
+            api.connect(() -> userName);
+            phaser.arriveAndAwaitAdvance();
             api.sendMessage(new Message(chatRoomDomain.getId(),"Hello again! Did you restart the room?"));
             phaser.arriveAndAwaitAdvance();
+            api.disconnect();
+            phaser.arriveAndDeregister();
         };
+
+        executorService.submit(client);
+        executorService.shutdown();
+
+        try {
+            log.info("Client connecting...");
+            phaser.arrive();
+            phaser.awaitAdvanceInterruptibly(0, 1000, TimeUnit.MILLISECONDS);
+            log.info("Sending messages...");
+            phaser.arrive();
+            phaser.awaitAdvanceInterruptibly(1, 1000, TimeUnit.MILLISECONDS);
+            log.info("Disconnecting...");
+            Thread.sleep(6000);
+            phaser.arrive();
+            phaser.awaitAdvanceInterruptibly(2, 1000, TimeUnit.MILLISECONDS);
+            log.info("Client connecting...");
+            phaser.arrive();
+            phaser.awaitAdvanceInterruptibly(3, 1000, TimeUnit.MILLISECONDS);
+            log.info("Sending messages...");
+            phaser.arrive();
+            phaser.awaitAdvanceInterruptibly(4, 1000, TimeUnit.MILLISECONDS);
+            log.info("Disconnecting...");
+            Thread.sleep(6000);
+            phaser.arrive();
+            phaser.awaitAdvanceInterruptibly(5, 1000, TimeUnit.MILLISECONDS);
+
+        }
+        catch(TimeoutException | InterruptedException e){
+            fail("Timeout reached");
+        }
+
 
     }
 }

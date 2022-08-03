@@ -52,7 +52,7 @@ public class WsChatRoomRealm implements ChatRoomRealm {
                 .orElseThrow(() -> new ChatException("No user with given credentials found"));
         List<com.wu.chatserver.domain.ChatRoom> userChatRoomsDomain = user.getChatRooms();
         BlockingQueue<Message> queue = new ArrayBlockingQueue<>(32);
-        final RoomMembership membership = new RoomMembership(user, (m) -> queue.offer(m));
+        final RoomMembership membership = new RoomMembership(user, queue::offer);
         ChatConnection chatConnection = new ChatConnection(membership);
 
         for (com.wu.chatserver.domain.ChatRoom chatRoomDomain : userChatRoomsDomain) {
@@ -62,7 +62,6 @@ public class WsChatRoomRealm implements ChatRoomRealm {
             if (chatRoom == null) {
                 chatRoom = initChatRoom(chatRoomDomain);
             }
-
             chatRoom.addMembership(membership);
             chatConnection.addChatRoom(chatRoom);
         }
@@ -73,20 +72,23 @@ public class WsChatRoomRealm implements ChatRoomRealm {
         log.info("User was connected");
         return new ChatApi(
                 (Message m) -> {
-                    log.info("Processing ws message {}", m);
+                    log.debug("Processing ws message {}", m);
                     Objects.requireNonNull(m.getChatId());
-                    dispatchMessage(membership, m);
+                    dispatchMessage(chatConnection, m);
                 },
-                queue::take,
                 () -> {
-                    log.info("Disconnecting user {}", user.getUserName());
+                    log.debug("Waiting a message from the queue");
+                    return queue.take();
+                },
+                () -> {
+                    log.debug("Disconnecting user {}", user.getUserName());
                     chatConnection.closeConnection();
                     userOpenedConnections.remove(chatConnection);
-                    log.info("Connection for user {} was removed", user.getUserName());
+                    log.debug("Connection for user {} was removed", user.getUserName());
                 });
     }
 
-    private void dispatchMessage(RoomMembership membership, Message message) {
+    private void dispatchMessage(ChatConnection connection, Message message) {
         ChatRoom chatRoom;
         chatRoomLock.readLock().lock();
         try {
@@ -99,7 +101,7 @@ public class WsChatRoomRealm implements ChatRoomRealm {
         if (!chatRoom.isRunning()) {
             launchChatRoom(chatRoom);
         }
-        chatRoom.sendMessage(membership, message);
+        chatRoom.sendMessage(connection.getMembership(), message);
     }
 
     /**

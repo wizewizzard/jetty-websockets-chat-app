@@ -52,17 +52,20 @@ public class ChatRoomImpl implements ChatRoom{
     public void run() {
         isRunning = true;
         log.debug("Chat room {} started.", chatRoom.getName());
-        while(!Thread.interrupted()){
-            try {
+        try {
+            while(!Thread.interrupted()){
                 Message message = messages.poll(roomUpTime, TimeUnit.SECONDS);
+                if(message == null){
+                    break;
+                }
                 log.info("Polled message {} from queue in the chat room {}", message, chatRoom.getName());
                 for (RoomMembership roomMember: roomMembers
                      ) {
                     roomMember.handleMessage(message);
                 }
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
             }
+        }
+        catch (InterruptedException e) {
         }
         log.debug("Chat room {} is going offline", chatRoom.getName());
         isRunning = false;
