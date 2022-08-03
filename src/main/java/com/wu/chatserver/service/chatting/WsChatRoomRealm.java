@@ -15,8 +15,9 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 @Slf4j
-public class WsChatRoomRealm implements ChatRoomRealm{
+public class WsChatRoomRealm implements ChatRoomRealm {
     //private final Map<User, List<RoomMembership>> userOpenedSessions = new ConcurrentHashMap<>();
     private final Map<User, List<ChatConnection>> userOpenedConnections = new ConcurrentHashMap<>();
     private final ReadWriteLock chatRoomLock = new ReentrantReadWriteLock();
@@ -48,11 +49,11 @@ public class WsChatRoomRealm implements ChatRoomRealm{
         final RoomMembership membership = new RoomMembership(user, (m) -> queue.offer(m));
         ChatConnection chatConnection = new ChatConnection(membership);
 
-        for (com.wu.chatserver.domain.ChatRoom chatRoomDomain : userChatRoomsDomain){
+        for (com.wu.chatserver.domain.ChatRoom chatRoomDomain : userChatRoomsDomain) {
             chatRoomLock.readLock().lock();
             ChatRoom chatRoom = chatRooms.get(chatRoomDomain.getId());
             chatRoomLock.readLock().unlock();
-            if(chatRoom == null){
+            if (chatRoom == null) {
                 chatRoom = initChatRoom(chatRoomDomain);
             }
 
@@ -70,13 +71,7 @@ public class WsChatRoomRealm implements ChatRoomRealm{
                     Objects.requireNonNull(m.getChatId());
                     dispatchMessage(membership, m);
                 },
-                () -> {
-                    try {
-                        return queue.take();
-                    } catch (InterruptedException e) {
-                        throw new ChatException("Interrupted");
-                    }
-                },
+                queue::take,
                 () -> {
                     log.info("Disconnecting user {}", user.getUserName());
                     chatConnection.closeConnection();
@@ -85,18 +80,17 @@ public class WsChatRoomRealm implements ChatRoomRealm{
                 });
     }
 
-    private void dispatchMessage(RoomMembership membership, Message message){
+    private void dispatchMessage(RoomMembership membership, Message message) {
         ChatRoom chatRoom;
         chatRoomLock.readLock().lock();
-        try{
+        try {
             chatRoom = chatRooms.get(message.getChatId());
-        }
-        finally {
+        } finally {
             chatRoomLock.readLock().unlock();
         }
-        if(chatRoom == null )
+        if (chatRoom == null)
             throw new ChatException("This chat room does not exist");
-        if(!chatRoom.isRunning()){
+        if (!chatRoom.isRunning()) {
             launchChatRoom(chatRoom);
         }
         chatRoom.sendMessage(membership, message);
@@ -106,7 +100,7 @@ public class WsChatRoomRealm implements ChatRoomRealm{
      * Puts a new chat room in a map but does not run it
      * puts available memberships in it
      */
-    private ChatRoom initChatRoom(com.wu.chatserver.domain.ChatRoom chatRoomDomain){
+    private ChatRoom initChatRoom(com.wu.chatserver.domain.ChatRoom chatRoomDomain) {
         chatRoomLock.writeLock().lock();
         try {
             log.debug("Initialising room {}", chatRoomDomain.getName());
@@ -114,10 +108,9 @@ public class WsChatRoomRealm implements ChatRoomRealm{
                     messageService,
                     () -> {
                         chatRoomLock.writeLock().lock();
-                        try{
+                        try {
                             chatRooms.remove(chatRoomDomain.getId());
-                        }
-                        finally {
+                        } finally {
                             chatRoomLock.writeLock().unlock();
                         }
                     }
@@ -127,7 +120,7 @@ public class WsChatRoomRealm implements ChatRoomRealm{
             userOpenedConnections.keySet()
                     .forEach(user -> {
                         if (chatMembers.contains(user)) {
-                            for (ChatConnection connection : userOpenedConnections.get(user)){
+                            for (ChatConnection connection : userOpenedConnections.get(user)) {
                                 connection.addChatRoom(chatRoom);
                                 chatRoom.addMembership(connection.getMembership());
                             }
@@ -139,14 +132,14 @@ public class WsChatRoomRealm implements ChatRoomRealm{
                 log.debug("Room {} initialized", chatRoomDomain.getName());
             }
             return chatRooms.get(chatRoomDomain.getId());
-        }
-        finally {
+        } finally {
             chatRoomLock.writeLock().unlock();
         }
     }
 
     /**
      * Launches a thread for the given chatroom
+     *
      * @param
      * @return
      */
@@ -160,8 +153,7 @@ public class WsChatRoomRealm implements ChatRoomRealm{
                 log.debug("Room {} thread started", chatRoom);
             }
             return chatRoom;
-            }
-        finally {
+        } finally {
             chatRoomLock.writeLock().unlock();
         }
     }
@@ -172,7 +164,7 @@ public class WsChatRoomRealm implements ChatRoomRealm{
         //remove session from map and remove member from rooms
     }
 
-    public void chatRoomCreated(@Observes Object event){
+    public void chatRoomCreated(@Observes Object event) {
 
     }
 
@@ -180,18 +172,20 @@ public class WsChatRoomRealm implements ChatRoomRealm{
     /**
      * If ws connection is opened adds user connection to the room.
      * If user did it without connection opened, does nothing
+     *
      * @param event
      */
-    public void userBecameMemberOfChat(@Observes Object event){
+    public void userBecameMemberOfChat(@Observes Object event) {
 
     }
 
     /**
      * If ws connection is opened removes connection from room.
      * If user did it without connection opened, does nothing
+     *
      * @param event
      */
-    public void userLeftChat(@Observes Object event){
+    public void userLeftChat(@Observes Object event) {
 
     }
 }
