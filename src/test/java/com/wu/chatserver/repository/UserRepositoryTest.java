@@ -1,10 +1,9 @@
 package com.wu.chatserver.repository;
 
+import com.wu.chatserver.domain.ChatRoom;
 import com.wu.chatserver.domain.User;
 import com.wu.chatserver.repository.util.TestData;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -21,17 +20,19 @@ class UserRepositoryTest {
 
     private static final TestData testData = new TestData();
 
+    private EntityManager em;
+
     @BeforeAll
-    public static void setUp(){
+    public static void setUp() {
         emf = Persistence.createEntityManagerFactory("chat_persistence_unit");
         EntityManager em = emf.createEntityManager();
 
-        try{
+        try {
             em.getTransaction().begin();
             testData.getUsers().forEach(em::persist);
+            testData.getChatRooms().forEach(em::persist);
             em.getTransaction().commit();
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             em.getTransaction().rollback();
             throw new RuntimeException("Something went wrong", e);
 
@@ -41,20 +42,37 @@ class UserRepositoryTest {
     @AfterAll
     public static void tearDown() {
         EntityManager em = emf.createEntityManager();
-        try{
+        try {
             em.getTransaction().begin();
+            testData.getChatRooms().stream().map(em::merge).forEach(r -> {
+                em.refresh(r);
+                em.remove(r);
+            });
             testData.getUsers().stream().map(em::merge).forEach(r -> {
                 em.refresh(r);
                 em.remove(r);
             });
             em.getTransaction().commit();
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             em.getTransaction().rollback();
             throw new RuntimeException("Something went wrong", e);
 
         }
         emf.close();
+    }
+
+    @BeforeEach
+    public void beforeEach() {
+        em = emf.createEntityManager();
+        userRepositoryUT = new UserRepository();
+        userRepositoryUT.setEntityManager(em);
+    }
+
+    @AfterEach
+    public void afterEach() {
+        if (em != null)
+            em.close();
+        em = null;
     }
 
     @Test
@@ -63,8 +81,6 @@ class UserRepositoryTest {
         assertThat(users).hasSizeGreaterThan(0);
         String name = users.get(0).getUserName();
         String notExistingName = UUID.randomUUID().toString();
-        EntityManager em = emf.createEntityManager();
-        userRepositoryUT.setEntityManager(em);
 
         Optional<User> userOptional = userRepositoryUT.findUserByUserName(name);
         Optional<User> userForNotExistingNameOptional = userRepositoryUT.findUserByUserName(notExistingName);
@@ -85,9 +101,6 @@ class UserRepositoryTest {
         String notUniqueName = users.get(0).getUserName();
         String notUniqueEmail = users.get(0).getEmail();
 
-        EntityManager em = emf.createEntityManager();
-
-        userRepositoryUT.setEntityManager(em);
         assertThat(userRepositoryUT.uniqueUserNameAndEmail(notUniqueName, "random")).isFalse();
         assertThat(userRepositoryUT.uniqueUserNameAndEmail("random", notUniqueEmail)).isFalse();
         assertThat(userRepositoryUT.uniqueUserNameAndEmail(notUniqueName, notUniqueEmail)).isFalse();
@@ -96,4 +109,19 @@ class UserRepositoryTest {
         em.close();
     }
 
+    @Test
+    void shouldFetchUserWithChatRoomsInOneQuery() {
+        User user = testData.getUsers().get(0);
+        assertThat(user.getChatRooms()).hasSizeGreaterThan(0);
+        List<ChatRoom> usersChatRooms = user.getChatRooms();
+
+        Optional<User> optionalUser = userRepositoryUT.findUserWithChatRoomsByUserName(user.getUserName());
+
+        assertThat(optionalUser)
+                .isPresent()
+                .get()
+                .satisfies(userFetched -> {
+                    assertThat(userFetched.getChatRooms()).containsAll(usersChatRooms);
+        });
+    }
 }

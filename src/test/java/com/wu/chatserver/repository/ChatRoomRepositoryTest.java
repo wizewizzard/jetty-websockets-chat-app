@@ -3,16 +3,16 @@ package com.wu.chatserver.repository;
 import com.wu.chatserver.domain.ChatRoom;
 import com.wu.chatserver.domain.User;
 import com.wu.chatserver.repository.util.TestData;
-import com.wu.chatserver.service.ChatRoomServiceImpl;
 import org.junit.jupiter.api.*;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
-
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class ChatRoomRepositoryTest {
 
@@ -60,15 +60,15 @@ class ChatRoomRepositoryTest {
     }
 
     @BeforeEach
-    public void beforeEach(){
+    public void beforeEach() {
         em = emf.createEntityManager();
         chatRoomRepositoryUT = new ChatRoomRepository();
         chatRoomRepositoryUT.setEntityManager(em);
     }
 
     @AfterEach
-    public void afterEach(){
-        if(em != null)
+    public void afterEach() {
+        if (em != null)
             em.close();
         em = null;
     }
@@ -84,5 +84,20 @@ class ChatRoomRepositoryTest {
                 .isTrue();
         assertThat(chatRoomRepositoryUT.isUserMemberOfChatRoom(chatRooms.get(0), users.get(2)))
                 .isFalse();
+    }
+
+    @Test
+    void shouldFetchChatRoomWithUsersInOneQuery() {
+        ChatRoom chatRoom = testData.getChatRooms().get(0);
+        Set<User> members = chatRoom.getMembers();
+
+        Optional<ChatRoom> chatRoomOptional = chatRoomRepositoryUT.findChatRoomByIdWithMembers(chatRoom.getId());
+
+        assertThat(chatRoomOptional)
+                .isPresent()
+                .get()
+                .satisfies(chatRoomFetched -> {
+                    assertThat(chatRoomFetched.getMembers()).containsAll(members);
+                });
     }
 }

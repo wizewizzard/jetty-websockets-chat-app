@@ -18,10 +18,9 @@ public class UserRepository extends GenericDaoSkeletal<Long, User> implements Us
     public Optional<User> findUserByUserName(String username) {
         TypedQuery<User> query = em.createQuery("FROM User u where u.userName=?1", User.class);
         query.setParameter(1, username);
-        try{
+        try {
             return Optional.of(query.getSingleResult());
-        }
-        catch (NoResultException noResultException){
+        } catch (NoResultException noResultException) {
             return Optional.empty();
         }
     }
@@ -33,5 +32,17 @@ public class UserRepository extends GenericDaoSkeletal<Long, User> implements Us
         query.setParameter(1, userName);
         query.setParameter(2, email);
         return query.getSingleResult();
+    }
+
+    @Override
+    public Optional<User> findUserWithChatRoomsByUserName(String userName) {
+        String jpqlQuery = "FROM User u JOIN FETCH u.chatRooms cr JOIN FETCH cr.createdBy where u.userName=:userName";
+        TypedQuery<User> query = em.createQuery(jpqlQuery, User.class);
+        query.setParameter("userName", userName);
+        try {
+            return Optional.of(query.getSingleResult());
+        } catch (NoResultException noResultException) {
+            return Optional.empty();
+        }
     }
 }

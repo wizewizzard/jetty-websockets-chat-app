@@ -6,8 +6,10 @@ import com.wu.chatserver.domain.User;
 import com.wu.chatserver.domain.User_;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.persistence.NoResultException;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.*;
+import java.util.Optional;
 
 @ApplicationScoped
 public class ChatRoomRepository extends GenericDaoSkeletal<Long, ChatRoom> implements ChatRoomDao {
@@ -34,5 +36,17 @@ public class ChatRoomRepository extends GenericDaoSkeletal<Long, ChatRoom> imple
         query.setParameter(chatId, chatRoom.getId());
         query.setParameter(userId, user.getId());
         return !query.getResultList().isEmpty();
+    }
+
+    @Override
+    public Optional<ChatRoom> findChatRoomByIdWithMembers(Long chatRoomId) {
+        String jpqlQuery = "FROM ChatRoom cr JOIN FETCH cr.members JOIN FETCH cr.createdBy where cr.id=:chatRoomId";
+        TypedQuery<ChatRoom> query = em.createQuery(jpqlQuery, ChatRoom.class);
+        query.setParameter("chatRoomId", chatRoomId);
+        try {
+            return Optional.of(query.getSingleResult());
+        } catch (NoResultException noResultException) {
+            return Optional.empty();
+        }
     }
 }

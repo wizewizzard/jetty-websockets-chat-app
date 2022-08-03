@@ -90,13 +90,25 @@ public class UserService {
     public Optional<User> getUserByUserName(String userName){
         return userDao.findUserByUserName(userName);
     }
-    public void setUserOnlineStatus(Long chatRoomId, Long userId, UsersChatSession.OnlineStatus onlineStatus) {
+    public void setUserOnlineStatusForRoom(Long chatRoomId, Long userId, UsersChatSession.OnlineStatus onlineStatus) {
         ChatRoom chatRoom = chatRoomDao.findById(chatRoomId).orElseThrow();
         User user = userDao.findById(userId).orElseThrow();
         if(chatRoomDao.isUserMemberOfChatRoom(chatRoom, user)){
             sessionDao.setOnlineStatus(chatRoom, user, onlineStatus, LocalDateTime.now());
         }
 
+    }
+
+    public void userSetOnlineStatus(Long userId, UsersChatSession.OnlineStatus onlineStatus){
+        User user = userDao.findById(userId).orElseThrow();
+        if(onlineStatus.equals(UsersChatSession.OnlineStatus.ONLINE))
+            sessionDao.setUserOnline(user, LocalDateTime.now());
+        else
+            sessionDao.setUserOffline(user, LocalDateTime.now());
+    }
+
+    public Optional<User> getUserWithChatRooms(String userName){
+        return userDao.findUserWithChatRoomsByUserName(userName);
     }
 
 }

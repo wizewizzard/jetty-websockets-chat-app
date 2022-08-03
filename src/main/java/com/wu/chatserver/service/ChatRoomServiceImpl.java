@@ -122,4 +122,9 @@ public class ChatRoomServiceImpl implements ChatRoomService{
         }
     }
 
+    @Override
+    public Optional<ChatRoom> findChatRoomWithMembersById(Long chatRoomId) {
+        return chatRoomRepository.findChatRoomByIdWithMembers(chatRoomId);
+    }
+
 }
