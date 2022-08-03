@@ -27,7 +27,7 @@ public class ChatRoom {
     @Setter
     private User createdBy;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "chats_members",
             joinColumns = @JoinColumn(name = "chat_id", referencedColumnName = "chat_room_id", nullable = false),
             inverseJoinColumns = @JoinColumn(name = "user_id", referencedColumnName = "user_id", nullable = false)
@@ -45,6 +45,7 @@ public class ChatRoom {
 
     public void addMember(User user) {
         members.add(user);
+        user.getChatRooms().add(this);
         UsersChatSession chatSession = new UsersChatSession();
         chatSession.setChatSessionId(new ChatSessionId(this, user));
         usersChatSessions.add(chatSession);
@@ -52,6 +53,7 @@ public class ChatRoom {
 
     public void removeMember(User user) {
         members.remove(user);
+        user.getChatRooms().remove(this);
         usersChatSessions.removeIf(chatSession -> chatSession.getChatSessionId().getUser().equals(user));
     }
 

@@ -4,10 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import javax.persistence.*;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 @Entity
 @Table(name = "chat_user")
@@ -35,8 +32,8 @@ public class User {
     private Set<UsersChatSession> chatSessions = new HashSet<>();
 
     @Getter
-    @ManyToMany(mappedBy = "members")
-    private List<ChatRoom> chatRooms;
+    @ManyToMany(mappedBy = "members", fetch = FetchType.LAZY)
+    private List<ChatRoom> chatRooms = new ArrayList<>();
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
