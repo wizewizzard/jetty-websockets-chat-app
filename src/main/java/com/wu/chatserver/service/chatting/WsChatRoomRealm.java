@@ -6,6 +6,9 @@ import com.wu.chatserver.exception.ChatException;
 import com.wu.chatserver.service.ChatRoomService;
 import com.wu.chatserver.service.MessageService;
 import com.wu.chatserver.service.UserService;
+import com.wu.chatserver.service.chatting.event.ChatRoomCreated;
+import com.wu.chatserver.service.chatting.event.UserJoinedChatRoom;
+import com.wu.chatserver.service.chatting.event.UserLeftChatRoom;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -192,7 +195,9 @@ public class WsChatRoomRealm implements ChatRoomRealm {
         //remove session from map and remove member from rooms
     }
 
-    public void chatRoomCreated(@Observes Object event) {
+    public void chatRoomCreated(@Observes ChatRoomCreated event) {
+        log.info("Triggered chatRoomCreated");
+        //trying to find all members of the room in opened sessions and put them in it
 
     }
 
@@ -203,8 +208,10 @@ public class WsChatRoomRealm implements ChatRoomRealm {
      *
      * @param event
      */
-    public void userBecameMemberOfChat(@Observes Object event) {
-
+    public void userJoinedChat(@Observes UserJoinedChatRoom event) {
+        log.info("Triggered userJoinedChat");
+        //find user connection
+        //if it exists then get the chat room and put user there
     }
 
     /**
@@ -213,7 +220,9 @@ public class WsChatRoomRealm implements ChatRoomRealm {
      *
      * @param event
      */
-    public void userLeftChat(@Observes Object event) {
-
+    public void userLeftChat(@Observes UserLeftChatRoom event) {
+        log.info("Triggered userLeftChat");
+        //find user connection
+        //if it exists then remove user membership from it
     }
 }

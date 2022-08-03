@@ -8,10 +8,15 @@ import com.wu.chatserver.exception.NotEnoughRightsException;
 import com.wu.chatserver.exception.RequestException;
 import com.wu.chatserver.repository.ChatRoomRepository;
 import com.wu.chatserver.repository.UserRepository;
+import com.wu.chatserver.service.chatting.event.ChatRoomCreated;
+import com.wu.chatserver.service.chatting.event.ChatRoomDeleted;
+import com.wu.chatserver.service.chatting.event.UserJoinedChatRoom;
+import com.wu.chatserver.service.chatting.event.UserLeftChatRoom;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Event;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
@@ -25,6 +30,15 @@ public class ChatRoomServiceImpl implements ChatRoomService{
     private ChatRoomRepository chatRoomRepository;
     private UserRepository userRepository;
     private EntityManager em;
+
+    @Inject
+    private Event<ChatRoomCreated> creationTrigger;
+    @Inject
+    private Event<ChatRoomDeleted> deletionTrigger;
+    @Inject
+    private Event<UserJoinedChatRoom> joinTrigger;
+    @Inject
+    private Event<UserLeftChatRoom> leaveTrigger;
 
     @Inject
     public ChatRoomServiceImpl(ChatRoomRepository chatRoomRepository,
@@ -52,6 +66,7 @@ public class ChatRoomServiceImpl implements ChatRoomService{
             tx.rollback();
             throw new RuntimeException("Transaction was not successful");
         }
+        creationTrigger.fire(new ChatRoomCreated(user, chatRoom));
         return chatRoom;
     }
 
@@ -65,6 +80,7 @@ public class ChatRoomServiceImpl implements ChatRoomService{
                 tx.begin();
                 chatRoomRepository.remove(em.merge(chatRoom));
                 tx.commit();
+                deletionTrigger.fire(new ChatRoomDeleted(chatRoom));
             } catch (Throwable e) {
                 tx.rollback();
                 throw new RuntimeException("Transaction was not successful");
@@ -91,6 +107,7 @@ public class ChatRoomServiceImpl implements ChatRoomService{
                 tx.begin();
                 chatRoom.addMember(user);
                 tx.commit();
+                joinTrigger.fire(new UserJoinedChatRoom(user, chatRoom));
             } catch (Throwable e) {
                 tx.rollback();
                 throw new RuntimeException("Transaction was not successful");
@@ -112,6 +129,7 @@ public class ChatRoomServiceImpl implements ChatRoomService{
                 tx.begin();
                 chatRoom.removeMember(user);
                 tx.commit();
+                leaveTrigger.fire(new UserLeftChatRoom(user, chatRoom));
             } catch (Throwable e) {
                 tx.rollback();
                 throw new RuntimeException("Transaction was not successful");
