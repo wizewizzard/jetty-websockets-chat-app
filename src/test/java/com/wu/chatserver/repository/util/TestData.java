@@ -83,6 +83,8 @@ public class TestData {
         chatRoom4.setName("Harry's chat #2");
         chatRoom4.setCreatedBy(harry);
         chatRoom4.addMember(harry);
+        chatRoom1.addMember(julia);
+        chatRoom1.addMember(jack);
         chatRooms.add(chatRoom4);
     }
     private void initMessages(){

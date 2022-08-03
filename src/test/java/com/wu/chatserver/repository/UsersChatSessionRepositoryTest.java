@@ -166,4 +166,49 @@ class UsersChatSessionRepositoryTest {
         assertThat(usersOnlineStatuses).hasSize(chatRoom.getMembers().size());
 
     }
+
+    @Test
+    public void shouldSetUserOnlineAndOfflineInAllRoomsHeHasMembership(){
+        List<User> users = testData.getUsers();
+        List<ChatRoom> chatRooms = testData.getChatRooms();
+        User juliaUser = users.stream().filter(u -> u.getUserName().equals("Jack")).findFirst().orElseThrow();
+        List<ChatRoom> userRooms = juliaUser.getChatRooms();
+        User offlineUser = users.stream().filter(u -> u.getUserName().equals("Julia")).findFirst().orElseThrow();
+
+        EntityTransaction tx = em.getTransaction();
+        try{
+            tx.begin();
+            chatSessionRepositoryUT.setUserOnline(juliaUser, LocalDateTime.now());
+            tx.commit();
+        }
+        catch (Throwable t){
+            tx.rollback();
+            fail(t);
+        }
+
+        em.clear();
+        userRooms.forEach(r -> {
+            List<UserDTO.Response.UserOnlineStatus> usersOnlineStatuses = chatSessionRepositoryUT.getUsersOnlineStatusForChatRoom(r);
+            assertThat(usersOnlineStatuses)
+                    .anyMatch(os -> os.getUserName().equals(juliaUser.getUserName()) && os.getEndedAt() == null);
+        });
+        em.clear();
+
+        tx = em.getTransaction();
+        try{
+            tx.begin();
+            chatSessionRepositoryUT.setUserOffline(juliaUser, LocalDateTime.now());
+            tx.commit();
+        }
+        catch (Throwable t){
+            tx.rollback();
+            fail(t);
+        }
+
+        userRooms.forEach(r -> {
+            List<UserDTO.Response.UserOnlineStatus> usersOnlineStatuses = chatSessionRepositoryUT.getUsersOnlineStatusForChatRoom(r);
+            assertThat(usersOnlineStatuses)
+                    .anyMatch(os -> os.getUserName().equals(juliaUser.getUserName()) && os.getEndedAt() != null);
+        });
+    }
 }

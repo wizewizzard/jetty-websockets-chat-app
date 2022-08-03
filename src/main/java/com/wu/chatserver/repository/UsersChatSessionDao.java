@@ -13,6 +13,9 @@ import java.util.List;
 public interface UsersChatSessionDao extends GenericDao<ChatSessionId, UsersChatSession> {
     void setOnlineStatus(ChatRoom chatRoom, User user, UsersChatSession.OnlineStatus onlineStatus, LocalDateTime updateDate);
 
+    void setUserOnline(User user, LocalDateTime updateDate);
+    void setUserOffline(User user, LocalDateTime updateDate);
+
     /**
      * Returns list of DTOs where user id, name, session start and session end are specified.
      * Called is free to treat untouched OnlineStatus field as he wants. It is not DAO's responsibility to

@@ -1,10 +1,13 @@
 package com.wu.chatserver.repository;
 
 import com.wu.chatserver.domain.*;
+import com.wu.chatserver.dto.MessageDTO;
 import com.wu.chatserver.dto.UserDTO;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.persistence.Query;
 import javax.persistence.Tuple;
+import javax.persistence.TypedQuery;
 import javax.persistence.criteria.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -41,6 +44,36 @@ public class UsersChatSessionRepository extends GenericDaoSkeletal<ChatSessionId
             chatSession.setEndedAt(updateDate);
         }
         em.persist(chatSession);
+    }
+
+    @Override
+    public void setUserOnline(User user, LocalDateTime updateDate) {
+        String jpqlUpdate = "UPDATE UsersChatSession cs " +
+                "SET cs.startedAt=:updateDate, cs.endedAt=NULL " +
+                "WHERE cs.chatSessionId.user.id=:userId and cs.chatSessionId.chatRoom.id IN " +
+                "(SELECT cr.id FROM ChatRoom cr " +
+                "LEFT JOIN cr.members us " +
+                "WHERE us.id=:userId" +
+                ")";
+        Query query = em.createQuery(jpqlUpdate);
+        query.setParameter("updateDate", updateDate);
+        query.setParameter("userId", user.getId());
+        query.executeUpdate();
+    }
+
+    @Override
+    public void setUserOffline(User user, LocalDateTime updateDate) {
+        String jpqlUpdate = "UPDATE UsersChatSession cs " +
+                "SET cs.endedAt=:updateDate " +
+                "WHERE cs.chatSessionId.user.id=:userId and cs.chatSessionId.chatRoom.id IN " +
+                "(SELECT cr.id FROM ChatRoom cr " +
+                "LEFT JOIN cr.members us " +
+                "WHERE us.id=:userId" +
+                ")";
+        Query query = em.createQuery(jpqlUpdate);
+        query.setParameter("updateDate", updateDate);
+        query.setParameter("userId", user.getId());
+        query.executeUpdate();
     }
 
     @Override
