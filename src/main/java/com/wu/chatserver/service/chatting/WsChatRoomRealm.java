@@ -8,6 +8,7 @@ import com.wu.chatserver.service.MessageService;
 import com.wu.chatserver.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import java.util.*;
@@ -18,6 +19,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Slf4j
+@ApplicationScoped
 public class WsChatRoomRealm implements ChatRoomRealm {
     private final Map<User, List<RoomConnection>> userOpenedConnections = new ConcurrentHashMap<>();
     private final ReadWriteLock chatRoomLock = new ReentrantReadWriteLock();
@@ -26,7 +28,7 @@ public class WsChatRoomRealm implements ChatRoomRealm {
     private final UserService userService;
     private final ChatRoomService chatRoomService;
     private final MessageService messageService;
-    private final int roomUpTime;
+    private int roomUpTime;
 
     @Inject
     public WsChatRoomRealm(UserService userService,
@@ -35,12 +37,18 @@ public class WsChatRoomRealm implements ChatRoomRealm {
         this.userService = userService;
         this.messageService = messageService;
         this.chatRoomService = chatRoomService;
-        String roomUpTime = System.getenv("RoomUpTime");
+        log.info("Rooms default uptime is set to {}", this.roomUpTime);
+    }
+
+    @Override
+    public void init(Properties properties) {
+        System.out.println("Init called");
+        ChatRoomRealm.super.init(properties);
+        String roomUpTime = properties.getProperty("RoomUpTime");
         if(roomUpTime != null)
             this.roomUpTime = Integer.parseInt(roomUpTime);
         else
             this.roomUpTime = 0;
-        log.info("Rooms default uptime is set to {}", this.roomUpTime);
     }
 
     @Override
