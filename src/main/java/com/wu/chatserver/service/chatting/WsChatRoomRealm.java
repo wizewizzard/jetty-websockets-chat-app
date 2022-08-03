@@ -18,7 +18,6 @@ import java.util.stream.Stream;
 
 @Slf4j
 public class WsChatRoomRealm implements ChatRoomRealm {
-    //private final Map<User, List<RoomMembership>> userOpenedSessions = new ConcurrentHashMap<>();
     private final Map<User, List<ChatConnection>> userOpenedConnections = new ConcurrentHashMap<>();
     private final ReadWriteLock chatRoomLock = new ReentrantReadWriteLock();
     private final Map<Long, ChatRoom> chatRooms = new HashMap<>();
@@ -26,6 +25,7 @@ public class WsChatRoomRealm implements ChatRoomRealm {
     private final UserService userService;
     private final ChatRoomService chatRoomService;
     private final MessageService messageService;
+    private final int roomUpTime;
 
     @Inject
     public WsChatRoomRealm(UserService userService,
@@ -34,10 +34,16 @@ public class WsChatRoomRealm implements ChatRoomRealm {
         this.userService = userService;
         this.messageService = messageService;
         this.chatRoomService = chatRoomService;
+        String roomUpTime = System.getenv("RoomUpTime");
+        if(roomUpTime != null)
+            this.roomUpTime = Integer.parseInt(roomUpTime);
+        else
+            this.roomUpTime = 0;
+        log.info("Rooms default uptime is set to {}", roomUpTime);
     }
 
     @Override
-    public ChatClientAPI tryConnect(ConnectionCredentials credentials) throws ChatException {
+    public ChatApi tryConnect(ConnectionCredentials credentials) throws ChatException {
         //TODO: update chat sessions!
         //TODO: optimize query so it extracts user and chat rooms at once
         log.info("Trying to connect a user");
@@ -65,7 +71,7 @@ public class WsChatRoomRealm implements ChatRoomRealm {
                 (l1, l2) -> Collections.synchronizedList(Stream.concat(l1.stream(), l2.stream()).collect(Collectors.toList())));
 
         log.info("User was connected");
-        return new WsChatClient(
+        return new ChatApi(
                 (Message m) -> {
                     log.info("Processing ws message {}", m);
                     Objects.requireNonNull(m.getChatId());
@@ -104,17 +110,21 @@ public class WsChatRoomRealm implements ChatRoomRealm {
         chatRoomLock.writeLock().lock();
         try {
             log.debug("Initialising room {}", chatRoomDomain.getName());
-            ChatRoom chatRoom = new ChatRoomImpl(chatRoomDomain,
-                    messageService,
-                    () -> {
-                        chatRoomLock.writeLock().lock();
-                        try {
-                            chatRooms.remove(chatRoomDomain.getId());
-                        } finally {
-                            chatRoomLock.writeLock().unlock();
-                        }
-                    }
-            );
+            ChatRoom chatRoom;
+            if(roomUpTime > 0){
+                chatRoom = new ChatRoomImpl(chatRoomDomain,
+                        messageService,
+                        roomUpTime,
+                        null
+                );
+            }
+            else{
+                chatRoom = new ChatRoomImpl(chatRoomDomain,
+                        messageService,
+                        null
+                );
+            }
+
             //TODO: optimise so it has members already fetched
             Set<User> chatMembers = chatRoomDomain.getMembers();
             userOpenedConnections.keySet()

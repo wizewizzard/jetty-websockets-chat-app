@@ -12,7 +12,7 @@ public interface ChatRoomRealm {
          * @return
          * @throws ChatException
          */
-        public ChatClientAPI tryConnect(ConnectionCredentials credentials) throws ChatException;
+        public ChatApi tryConnect(ConnectionCredentials credentials) throws ChatException;
         /**
          * Makes user go offline in all chat rooms he is member of
          * @param credentials

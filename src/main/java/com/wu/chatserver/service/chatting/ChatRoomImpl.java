@@ -16,11 +16,12 @@ import java.util.concurrent.TimeUnit;
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class ChatRoomImpl implements ChatRoom{
     private static int DEFAULT_CAPACITY  = 1024;
-    private static int DEFAULT_TIMEOUT = 60;
+    private static int DEFAULT_UPTIME = 60;
     @EqualsAndHashCode.Include
     private final com.wu.chatserver.domain.ChatRoom chatRoom;
     private final MessageService messageService;
     private final Runnable callback;
+    private int roomUpTime;
     private volatile boolean isRunning;
     BlockingQueue<Message> messages = new ArrayBlockingQueue<>(DEFAULT_CAPACITY);
     //TODO: CopyOnWriteList or synchronizedList... debatable
@@ -33,6 +34,18 @@ public class ChatRoomImpl implements ChatRoom{
         this.messageService = messageService;
         this.callback = callback;
         isRunning = false;
+        roomUpTime = DEFAULT_UPTIME;
+    }
+
+    public ChatRoomImpl(com.wu.chatserver.domain.ChatRoom chatRoom,
+                        MessageService messageService,
+                        int roomUpTime,
+                        Runnable callback) {
+        this.chatRoom = chatRoom;
+        this.messageService = messageService;
+        this.callback = callback;
+        this.roomUpTime = roomUpTime;
+        isRunning = false;
     }
 
     @Override
@@ -41,7 +54,7 @@ public class ChatRoomImpl implements ChatRoom{
         log.debug("Chat room {} started.", chatRoom.getName());
         while(!Thread.interrupted()){
             try {
-                Message message = messages.poll(DEFAULT_TIMEOUT, TimeUnit.SECONDS);
+                Message message = messages.poll(roomUpTime, TimeUnit.SECONDS);
                 log.info("Polled message {} from queue in the chat room {}", message, chatRoom.getName());
                 for (RoomMembership roomMember: roomMembers
                      ) {
@@ -53,7 +66,8 @@ public class ChatRoomImpl implements ChatRoom{
         }
         log.debug("Chat room {} is going offline", chatRoom.getName());
         isRunning = false;
-        callback.run();
+        if(callback != null)
+            callback.run();
     }
 
     @Override

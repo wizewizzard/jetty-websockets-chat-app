@@ -66,7 +66,8 @@ class WsChatRoomRealmTest {
         Runnable client1 = () -> {
             log.info("User thread {} has started", userName1);
             try {
-                ChatClientAPI api = realm.tryConnect(() -> userName1);
+                ChatClientAPI api = new ChatClientAPI(realm);
+                api.connect(() -> userName1);
                 log.info("User {} has connected", userName1);
                 phaser.arriveAndAwaitAdvance();
                 api.sendMessage(new Message(chatRoomDomain2.getId(), "Test message from user 1"));
@@ -85,7 +86,8 @@ class WsChatRoomRealmTest {
         Runnable client2 = () -> {
             log.info("User thread {} has started", userName2);
             try {
-                ChatClientAPI api = realm.tryConnect(() -> userName2);
+                ChatClientAPI api = new ChatClientAPI(realm);
+                api.connect(() -> userName2);
                 log.info("User {} has connected", userName2);
                 phaser.arriveAndAwaitAdvance();
                 while(true){
@@ -151,7 +153,8 @@ class WsChatRoomRealmTest {
 
             mockedUsers.add(user);
             clients.add(() -> {
-                final ChatClientAPI api = realm.tryConnect(() -> userName);
+                ChatClientAPI api = new ChatClientAPI(realm);
+                api.connect(() -> userName);
                 List<Message> messagesReceived = new ArrayList<>();
                 log.info("User {} connected", userName);
                 Thread messageReceivingThread = new Thread(() -> {
@@ -221,5 +224,31 @@ class WsChatRoomRealmTest {
             fail("Timeout reached");
             e.printStackTrace();
         }
+    }
+
+    @Test
+    public void shouldStopAndRestartRoom(){
+        String userName = "TestUser";
+        User user = Mockito.mock(User.class);
+        final ChatRoom chatRoomDomain = Mockito.mock(ChatRoom.class);
+        final Phaser phaser = new Phaser(2);
+        Mockito.when(chatRoomDomain.getId()).thenReturn(1L);
+        Mockito.when(chatRoomDomain.getName()).thenReturn("Test chat room #1");
+        Mockito.when(user.getUserName()).thenReturn(userName);
+        Mockito.when(user.getId()).thenReturn(ThreadLocalRandom.current().nextLong());
+        Mockito.when(userService.getUserByUserName(userName)).thenReturn(Optional.of(user));
+        Mockito.when(user.getChatRooms()).thenReturn(List.of(chatRoomDomain));
+
+        Runnable client = () -> {
+            final ChatApi api =  realm.tryConnect(() -> userName);
+            phaser.arriveAndAwaitAdvance();
+            api.sendMessage(new Message(chatRoomDomain.getId(),"Hello!"));
+            phaser.arriveAndAwaitAdvance();
+            api.disconnect();
+            phaser.arriveAndAwaitAdvance();
+            api.sendMessage(new Message(chatRoomDomain.getId(),"Hello again! Did you restart the room?"));
+            phaser.arriveAndAwaitAdvance();
+        };
+
     }
 }
