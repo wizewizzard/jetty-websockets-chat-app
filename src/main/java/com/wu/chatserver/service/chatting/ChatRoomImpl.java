@@ -25,7 +25,7 @@ public class ChatRoomImpl implements ChatRoom{
     private volatile boolean isRunning;
     BlockingQueue<Message> messages = new ArrayBlockingQueue<>(DEFAULT_CAPACITY);
     //TODO: CopyOnWriteList or synchronizedList... debatable
-    List<RoomMembership> roomMembers = new CopyOnWriteArrayList<>();
+    List<RoomConnection> roomMembers = new CopyOnWriteArrayList<>();
 
     public ChatRoomImpl(com.wu.chatserver.domain.ChatRoom chatRoom,
                         MessageService messageService,
@@ -59,7 +59,7 @@ public class ChatRoomImpl implements ChatRoom{
                     break;
                 }
                 log.info("Polled message {} from queue in the chat room {}", message, chatRoom.getName());
-                for (RoomMembership roomMember: roomMembers
+                for (RoomConnection roomMember: roomMembers
                      ) {
                     roomMember.handleMessage(message);
                 }
@@ -74,7 +74,7 @@ public class ChatRoomImpl implements ChatRoom{
     }
 
     @Override
-    public void addMembership(RoomMembership membership) {
+    public void addMembership(RoomConnection membership) {
         if(!roomMembers.contains(membership)){
             roomMembers.add(membership);
             messages.offer(new Message(chatRoom.getId(),
@@ -90,7 +90,7 @@ public class ChatRoomImpl implements ChatRoom{
     }
 
     @Override
-    public void removeMembership(RoomMembership membership) {
+    public void removeMembership(RoomConnection membership) {
         if(roomMembers.contains(membership)){
             roomMembers.remove(membership);
             messages.offer(new Message(chatRoom.getId(),
@@ -106,7 +106,7 @@ public class ChatRoomImpl implements ChatRoom{
     }
 
     @Override
-    public void sendMessage(RoomMembership source, Message message) {
+    public void sendMessage(RoomConnection source, Message message) {
         if(roomMembers.contains(source)){
             Message m = new Message(chatRoom.getId(),
                     source.getUser().getId(),

@@ -14,18 +14,11 @@ public interface ChatRoomRealm {
          */
         public ChatApi tryConnect(ConnectionCredentials credentials) throws ChatException;
         /**
-         * Makes user go offline in all chat rooms he is member of
+         * Forces user to be disconnected
          * @param credentials
          * @return
          * @throws ChatException
          */
         public void disconnect(String credentials);
-
-/*        *//**
-         * Get chat room instance by id
-         * @param chatRoomId
-         * @return
-         *//*
-        public Optional<ChatRoom> getChatRoom(Long chatRoomId);*/
 
 }
