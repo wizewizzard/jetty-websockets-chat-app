@@ -90,6 +90,9 @@ class WsChatRoomRealmTest {
                     if(message.getBody().equals("Test message from user 1")){
                         phaser.arriveAndAwaitAdvance();
                     }
+                    if(message.getBody().equals("User " + userName1 + " goes offline")){
+                        phaser.arriveAndDeregister();
+                    }
 
                 }
             } catch (Exception e) {
@@ -106,15 +109,12 @@ class WsChatRoomRealmTest {
             log.info("Connection phase");
             phaser.arrive();
             phaser.awaitAdvanceInterruptibly(0, 1000, TimeUnit.MILLISECONDS);
-            System.out.println(phaser.getPhase());
             log.info("Message phase");
             phaser.arrive();
             phaser.awaitAdvanceInterruptibly(1, 1000, TimeUnit.MILLISECONDS);
-            System.out.println(phaser.getPhase());
             log.info("Disconnect phase");
             phaser.arrive();
             phaser.awaitAdvanceInterruptibly(2, 1000, TimeUnit.MILLISECONDS);
-            System.out.println(phaser.getPhase());
         }
         catch (InterruptedException | TimeoutException e){
             fail("Timeout reached");

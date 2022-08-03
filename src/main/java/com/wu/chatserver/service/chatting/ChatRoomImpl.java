@@ -79,7 +79,7 @@ public class ChatRoomImpl implements ChatRoom{
             messages.offer(new Message(chatRoom.getId(),
                     null,
                     "System",
-                    "User"  +  membership.getUser().getUserName() + " goes offline",
+                    "User "  +  membership.getUser().getUserName() + " goes offline",
                     LocalDateTime.now()));
             log.info("User {} was removed from the chat room {}", membership.getUser().getUserName(), chatRoom.getName());
         }
