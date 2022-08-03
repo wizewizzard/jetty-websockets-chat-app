@@ -8,13 +8,17 @@ import com.wu.chatserver.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 @Slf4j
@@ -104,6 +108,7 @@ class WsChatRoomRealmTest {
 
         executorService.submit(client2);
         executorService.submit(client1);
+        executorService.shutdown();
         System.out.println(phaser.getPhase());
         try{
             log.info("Connection phase");
@@ -122,43 +127,99 @@ class WsChatRoomRealmTest {
         }
     }
 
-    @Test
-    public void testPhaser(){
-        final Phaser phaser = new Phaser(3);
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1, 3})
+    public void testMessageExchange(int clientsNum){
+        //GIVEN
+        assertThat(clientsNum).isGreaterThanOrEqualTo(0);
+        final List<Callable<List<Message>>> clients = new ArrayList<>();
+        final List<User> mockedUsers = new ArrayList<>();
+        final Phaser phaser = new Phaser(clientsNum + 1);
+        final ChatRoom chatRoomDomain = Mockito.mock(ChatRoom.class);
+        Mockito.when(chatRoomDomain.getId()).thenReturn(1L);
+        Mockito.when(chatRoomDomain.getName()).thenReturn("Test chat room #1");
 
-        Runnable r = () -> {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-            System.out.println("A");
-            phaser.arriveAndAwaitAdvance();
+        List<String> userNames = Stream.generate(() -> UUID.randomUUID().toString())
+                .limit(clientsNum)
+                .collect(Collectors.toList());
+        userNames.forEach(userName -> {
+            User user = Mockito.mock(User.class);
+            Mockito.when(user.getUserName()).thenReturn(userName);
+            Mockito.when(user.getId()).thenReturn(ThreadLocalRandom.current().nextLong());
+            Mockito.when(userService.getUserByUserName(userName)).thenReturn(Optional.of(user));
+            Mockito.when(user.getChatRooms()).thenReturn(List.of(chatRoomDomain));
 
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-            System.out.println("B");
-            phaser.arriveAndAwaitAdvance();
+            mockedUsers.add(user);
+            clients.add(() -> {
+                final ChatClientAPI api = realm.tryConnect(() -> userName);
+                List<Message> messagesReceived = new ArrayList<>();
+                log.info("User {} connected", userName);
+                Thread messageReceivingThread = new Thread(() -> {
+                    log.info("Message receiving thread for user {} started", userName);
+                    try{
+                    while(!Thread.interrupted()){
+                            Message message = api.pollMessage();
+                            log.info("Received message {}", message);
+                            messagesReceived.add(message);
+                        }
+                    }
+                    catch (InterruptedException ignored){
+                    }
+                    log.info("Message receiving thread for user {} is over", userName);
+                });
+                messageReceivingThread.start();
+                phaser.arriveAndAwaitAdvance();
+                api.sendMessage(new Message(chatRoomDomain.getId(),"Hello!"));
+                api.sendMessage(new Message(chatRoomDomain.getId(),"My name is " + userName));
+                phaser.arriveAndAwaitAdvance();
+                Thread.sleep(500);
+                messageReceivingThread.interrupt();
+                phaser.arriveAndDeregister();
+                return messagesReceived;
+            });
+        });
+        Mockito.when(chatRoomDomain.getMembers()).thenReturn(new HashSet<>(mockedUsers));
 
-        };
+        //WHEN
+        List<Future<List<Message>>> messageFutures = clients
+                .stream()
+                .map(executorService::submit)
+                .collect(Collectors.toList());
+        executorService.shutdown();
 
-        executorService.submit(r);
-        executorService.submit(r);
+        //THEN
         try{
-            System.out.println("Waiting");
+            log.info("Connection phase");
             phaser.arrive();
             phaser.awaitAdvanceInterruptibly(0, 1000, TimeUnit.MILLISECONDS);
-
-            System.out.println("Waiting");
+            log.info("Message phase");
             phaser.arrive();
             phaser.awaitAdvanceInterruptibly(1, 1000, TimeUnit.MILLISECONDS);
+            log.info("Disconnect phase");
+            phaser.arrive();
+            phaser.awaitAdvanceInterruptibly(2, 1000, TimeUnit.MILLISECONDS);
+            List<List<Message>> messagesReceivedByEachClient = messageFutures.stream().map(m -> {
+                try {
+                    return m.get(500, TimeUnit.MILLISECONDS);
+                } catch (ExecutionException | InterruptedException | TimeoutException e) {
+                    fail("Messages were not received in time");
+                    throw new RuntimeException(e);
+                }
+            }).collect(Collectors.toList());
+            assertThat(messagesReceivedByEachClient).allSatisfy(messages -> {
+                userNames.forEach(userName -> {
+                    assertThat(messages)
+                            .anyMatch(m -> m.getUserName().equals(userName) && m.getBody().equals("Hello!"));
+                    assertThat(messages)
+                            .anyMatch(m -> m.getUserName().equals(userName) && m.getBody().equals("My name is " + userName));
+                });
 
+            });
+            //System.out.println(messagesReceivedByEachClient);
         }
-        catch (TimeoutException | InterruptedException exception){
-            fail("Meh");
+        catch (InterruptedException | TimeoutException e){
+            fail("Timeout reached");
+            e.printStackTrace();
         }
     }
 }
