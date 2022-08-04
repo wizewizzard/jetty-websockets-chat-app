@@ -73,8 +73,14 @@ public class WsChatRoomRealm implements ChatRoomRealm {
             } finally {
                 chatRoomLock.readLock().unlock();
             }
-            if (chatRoom != null)
-                chatRoom.addMembership(roomMembership);
+            if(chatRoom == null){
+                chatRoom = initChatRoom(chatRoomDomain);
+                synchronizeMembership(chatRoom, chatRoomDomain);
+            }
+            if(!chatRoom.isRunning()){
+                launchChatRoom(chatRoom);
+            }
+            chatRoom.addMembership(roomMembership);
         }
 
         log.info("User was connected");
@@ -105,7 +111,7 @@ public class WsChatRoomRealm implements ChatRoomRealm {
             chatRoomLock.readLock().unlock();
         }
         if (chatRoom == null) {
-            chatRoom = initChatRoom(message.getChatId());
+            throw new ChatException("Specified chat room does not exist");
         }
         if (!chatRoom.isRunning()) {
             launchChatRoom(chatRoom);
@@ -117,10 +123,10 @@ public class WsChatRoomRealm implements ChatRoomRealm {
      * Puts a new chat room in a map but does not run it
      * puts available memberships in it
      */
-    private ChatRoom initChatRoom(Long chatRoomId) {
-        com.wu.chatserver.domain.ChatRoom chatRoomDomain = chatRoomService
+    private ChatRoom initChatRoom(com.wu.chatserver.domain.ChatRoom chatRoomDomain) {
+        /*com.wu.chatserver.domain.ChatRoom chatRoomDomain = chatRoomService
                 .findChatRoomWithMembersById(chatRoomId)
-                .orElseThrow(() -> new ChatException("Given chat room doe not exist"));
+                .orElseThrow(() -> new ChatException("Given chat room doe not exist"));*/
         chatRoomLock.writeLock().lock();
         try {
             log.debug("Initialising room {} with uptime of {} seconds", chatRoomDomain.getName(), roomUpTime);
@@ -132,7 +138,7 @@ public class WsChatRoomRealm implements ChatRoomRealm {
                 chatRoom.setUpTime(roomUpTime);
             }
 
-            Set<User> chatMembers = chatRoomDomain.getMembers();
+            /*Set<User> chatMembers = chatRoomDomain.getMembers();
             for (User chatMember : chatMembers) {
                 List<RoomConnection> userConnections = connectionPool.getUserConnections(chatMember);
                 if (userConnections != null)
@@ -140,7 +146,7 @@ public class WsChatRoomRealm implements ChatRoomRealm {
                         chatRoom.addMembership(conn.getMembership());
                         userService.setUserOnlineStatusForRoom(chatRoomDomain.getId(), chatMember.getId(), UsersChatSession.OnlineStatus.ONLINE);
                     });
-            }
+            }*/
 
             //CAS
             if (chatRooms.get(chatRoomDomain.getId()) == null) {
@@ -150,6 +156,18 @@ public class WsChatRoomRealm implements ChatRoomRealm {
             return chatRooms.get(chatRoomDomain.getId());
         } finally {
             chatRoomLock.writeLock().unlock();
+        }
+    }
+
+    public void synchronizeMembership(ChatRoom chatRoom, com.wu.chatserver.domain.ChatRoom chatRoomDomain){
+        Set<User> chatMembers = chatRoomDomain.getMembers();
+        for (User chatMember : chatMembers) {
+            List<RoomConnection> userConnections = connectionPool.getUserConnections(chatMember);
+            if (userConnections != null)
+                userConnections.forEach(conn -> {
+                    chatRoom.addMembership(conn.getMembership());
+                    //userService.setUserOnlineStatusForRoom(chatRoomDomain.getId(), chatMember.getId(), UsersChatSession.OnlineStatus.ONLINE);
+                });
         }
     }
 
@@ -184,10 +202,18 @@ public class WsChatRoomRealm implements ChatRoomRealm {
         log.trace("Triggered chatRoomCreated");
         //trying to find all members of the room in opened sessions and put them in it
         com.wu.chatserver.domain.ChatRoom chatRoomDomain = event.getChatRoom();
+        User user = event.getCreatedBy();
         if (chatRooms.get(chatRoomDomain.getId()) == null) {
-            initChatRoom(chatRoomDomain.getId());
+            ChatRoom chatRoom = initChatRoom(chatRoomDomain);
+            synchronizeMembership(chatRoom, chatRoomDomain);
         }
         launchChatRoom(chatRooms.get(chatRoomDomain.getId()));
+        List<RoomConnection> userConnections = connectionPool.getUserConnections(user);
+        //It is not enough to acquire online status only by becoming a member of a chat room.
+        // User must have connections opened
+        if (userConnections != null) {
+            userService.setUserOnlineStatusForRoom(chatRoomDomain.getId(), user.getId(), UsersChatSession.OnlineStatus.ONLINE);
+        }
     }
 
     /**
@@ -200,20 +226,25 @@ public class WsChatRoomRealm implements ChatRoomRealm {
         log.trace("Triggered userJoinedChat");
         com.wu.chatserver.domain.ChatRoom chatRoomDomain = event.getChatRoom();
         User user = event.getUser();
-        //init and launch room if it is not
+        List<RoomConnection> userConnections = connectionPool.getUserConnections(user);
+        //init, synch membership and launch room
         if (chatRooms.get(chatRoomDomain.getId()) == null) {
-            ChatRoom chatRoom = initChatRoom(chatRoomDomain.getId());
+            ChatRoom chatRoom = initChatRoom(chatRoomDomain);
+            synchronizeMembership(chatRoom, chatRoomDomain);
             launchChatRoom(chatRoom);
         }
-        else if(!chatRooms.get(chatRoomDomain.getId()).isRunning()){
-            launchChatRoom(chatRooms.get(chatRoomDomain.getId()));
+        //if room is initialised but down launch it and add membership for the room
+        else {
+            if(!chatRooms.get(chatRoomDomain.getId()).isRunning()){
+                final ChatRoom chatRoom = chatRooms.get(chatRoomDomain.getId());
+                launchChatRoom(chatRoom);
+            }
+            final ChatRoom chatRoom = chatRooms.get(chatRoomDomain.getId());
+            if (userConnections != null) {
+                userConnections.forEach(c -> chatRoom.addMembership(c.getMembership()));
+            }
         }
-        final ChatRoom chatRoom = chatRooms.get(chatRoomDomain.getId());
-        List<RoomConnection> userConnections = connectionPool.getUserConnections(user);
-        //It is not enough to acquire online status only by becoming a member of a chat room.
-        // User must have connections opened
         if (userConnections != null) {
-            userConnections.forEach(c -> chatRoom.addMembership(c.getMembership()));
             userService.setUserOnlineStatusForRoom(chatRoomDomain.getId(), user.getId(), UsersChatSession.OnlineStatus.ONLINE);
         }
     }

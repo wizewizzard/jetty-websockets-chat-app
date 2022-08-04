@@ -283,12 +283,8 @@ class WsChatRoomRealmTest {
                 log.info("Client disconnecting...");
                 api.disconnect();
                 phaser.arriveAndDeregister();
-            }
-            catch (InterruptedException | TimeoutException exception){
-                log.error("Test failed", exception);
-                fail("Exception fired", exception);
-            }
-            catch (Exception e){
+            } catch (Exception e){
+                fail("Exception fired", e);
                 e.printStackTrace();
             }
         };
