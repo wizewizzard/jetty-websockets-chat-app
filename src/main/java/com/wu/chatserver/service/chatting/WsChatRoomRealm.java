@@ -138,6 +138,7 @@ public class WsChatRoomRealm implements ChatRoomRealm {
                 if (userConnections != null)
                     userConnections.forEach(conn -> {
                         chatRoom.addMembership(conn.getMembership());
+                        userService.setUserOnlineStatusForRoom(chatRoomDomain.getId(), chatMember.getId(), UsersChatSession.OnlineStatus.ONLINE);
                     });
             }
 
@@ -186,6 +187,7 @@ public class WsChatRoomRealm implements ChatRoomRealm {
         if (chatRooms.get(chatRoomDomain.getId()) == null) {
             initChatRoom(chatRoomDomain.getId());
         }
+        launchChatRoom(chatRooms.get(chatRoomDomain.getId()));
     }
 
     /**
@@ -196,13 +198,21 @@ public class WsChatRoomRealm implements ChatRoomRealm {
      */
     public void userJoinedChatRoom(@Observes UserJoinedChatRoom event) {
         log.trace("Triggered userJoinedChat");
-        //find user connection
-        //if it exists then get the chat room and put user there
         com.wu.chatserver.domain.ChatRoom chatRoomDomain = event.getChatRoom();
         User user = event.getUser();
-        ChatRoom chatRoom = chatRooms.get(chatRoomDomain.getId());
+        //init and launch room if it is not
+        if (chatRooms.get(chatRoomDomain.getId()) == null) {
+            ChatRoom chatRoom = initChatRoom(chatRoomDomain.getId());
+            launchChatRoom(chatRoom);
+        }
+        else if(!chatRooms.get(chatRoomDomain.getId()).isRunning()){
+            launchChatRoom(chatRooms.get(chatRoomDomain.getId()));
+        }
+        final ChatRoom chatRoom = chatRooms.get(chatRoomDomain.getId());
         List<RoomConnection> userConnections = connectionPool.getUserConnections(user);
-        if (chatRoom != null && userConnections != null) {
+        //It is not enough to acquire online status only by becoming a member of a chat room.
+        // User must have connections opened
+        if (userConnections != null) {
             userConnections.forEach(c -> chatRoom.addMembership(c.getMembership()));
             userService.setUserOnlineStatusForRoom(chatRoomDomain.getId(), user.getId(), UsersChatSession.OnlineStatus.ONLINE);
         }
