@@ -6,6 +6,8 @@ import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -24,8 +26,7 @@ public class ChatRoomImpl implements ChatRoom{
     private int roomUpTime;
     private volatile boolean isRunning;
     BlockingQueue<Message> messages = new ArrayBlockingQueue<>(DEFAULT_CAPACITY);
-    //TODO: CopyOnWriteList or synchronizedList... debatable
-    List<RoomConnection> roomMembers = new CopyOnWriteArrayList<>();
+    List<RoomConnection> roomMembers = Collections.synchronizedList(new ArrayList<>());
 
     public ChatRoomImpl(com.wu.chatserver.domain.ChatRoom chatRoom,
                         MessageService messageService,
