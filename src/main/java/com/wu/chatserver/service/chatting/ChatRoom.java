@@ -9,4 +9,5 @@ public interface ChatRoom extends Runnable{
     public void sendMessage(RoomConnection source, Message message);
     public boolean isRunning();
 
+    public void setUpTime(int uptimeInSeconds);
 }

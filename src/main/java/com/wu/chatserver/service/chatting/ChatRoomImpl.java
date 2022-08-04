@@ -23,7 +23,9 @@ public class ChatRoomImpl implements ChatRoom{
     private final com.wu.chatserver.domain.ChatRoom chatRoom;
     private final MessageService messageService;
     private final Runnable callback;
-    private int roomUpTime;
+    @Getter
+    @Setter
+    private int upTime;
     private volatile boolean isRunning;
     BlockingQueue<Message> messages = new ArrayBlockingQueue<>(DEFAULT_CAPACITY);
     List<RoomConnection> roomMembers = Collections.synchronizedList(new ArrayList<>());
@@ -35,18 +37,7 @@ public class ChatRoomImpl implements ChatRoom{
         this.messageService = messageService;
         this.callback = callback;
         isRunning = false;
-        roomUpTime = DEFAULT_UPTIME;
-    }
-
-    public ChatRoomImpl(com.wu.chatserver.domain.ChatRoom chatRoom,
-                        MessageService messageService,
-                        int roomUpTime,
-                        Runnable callback) {
-        this.chatRoom = chatRoom;
-        this.messageService = messageService;
-        this.callback = callback;
-        this.roomUpTime = roomUpTime;
-        isRunning = false;
+        upTime = DEFAULT_UPTIME;
     }
 
     @Override
@@ -55,7 +46,7 @@ public class ChatRoomImpl implements ChatRoom{
         log.debug("Chat room {} started.", chatRoom.getName());
         try {
             while(!Thread.interrupted()){
-                Message message = messages.poll(roomUpTime, TimeUnit.SECONDS);
+                Message message = messages.poll(upTime, TimeUnit.SECONDS);
                 if(message == null){
                     break;
                 }
