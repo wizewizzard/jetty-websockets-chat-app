@@ -3,6 +3,8 @@ package com.wu.chatserver.service.chatting;
 import com.wu.chatserver.exception.ChatException;
 import com.wu.chatserver.service.MessageService;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
@@ -11,8 +13,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Slf4j
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
@@ -28,7 +30,7 @@ public class ChatRoomImpl implements ChatRoom{
     private int upTime;
     private volatile boolean isRunning;
     BlockingQueue<Message> messages = new ArrayBlockingQueue<>(DEFAULT_CAPACITY);
-    List<RoomConnection> roomMembers = Collections.synchronizedList(new ArrayList<>());
+    List<RoomMembership> roomMembers = Collections.synchronizedList(new ArrayList<>());
 
     public ChatRoomImpl(com.wu.chatserver.domain.ChatRoom chatRoom,
                         MessageService messageService,
@@ -47,11 +49,13 @@ public class ChatRoomImpl implements ChatRoom{
         try {
             while(!Thread.interrupted()){
                 Message message = messages.poll(upTime, TimeUnit.SECONDS);
+                log.info("Polled message {} from queue in the chat room {} sending to {} number of users",
+                        message, chatRoom.getName(), roomMembers.size());
                 if(message == null){
                     break;
                 }
-                log.info("Polled message {} from queue in the chat room {}", message, chatRoom.getName());
-                for (RoomConnection roomMember: roomMembers
+
+                for (RoomMembership roomMember: roomMembers
                      ) {
                     roomMember.handleMessage(message);
                 }
@@ -66,9 +70,10 @@ public class ChatRoomImpl implements ChatRoom{
     }
 
     @Override
-    public void addMembership(RoomConnection membership) {
+    public void addMembership(RoomMembership membership) {
         if(!roomMembers.contains(membership)){
             roomMembers.add(membership);
+            membership.addChatRoom(this);
             messages.offer(new Message(chatRoom.getId(),
                     null,
                     "System",
@@ -82,9 +87,10 @@ public class ChatRoomImpl implements ChatRoom{
     }
 
     @Override
-    public void removeMembership(RoomConnection membership) {
+    public void removeMembership(RoomMembership membership) {
         if(roomMembers.contains(membership)){
             roomMembers.remove(membership);
+            membership.removeChatRoom(this);
             messages.offer(new Message(chatRoom.getId(),
                     null,
                     "System",

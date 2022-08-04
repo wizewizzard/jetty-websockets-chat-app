@@ -3,6 +3,7 @@ package com.wu.chatserver.service.chatting;
 import com.wu.chatserver.domain.User;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -18,34 +19,24 @@ public class RoomConnection {
     @EqualsAndHashCode.Include
     @Getter
     private final User user;
-    private final Consumer<Message> messageHandler;
     @Getter
-    private final Set<ChatRoom> chatRooms;
+    @Setter
+    private RoomMembership membership;
+
+    public RoomConnection(User user) {
+        this.user = user;
+    }
 
     public RoomConnection(User user,
-                          Consumer<Message> messageHandler) {
+                          RoomMembership membership
+                          ) {
         this.user = user;
-        this.messageHandler = messageHandler;
-        this.chatRooms = Collections.synchronizedSet(new HashSet<>());
+        this.membership = membership;
     }
 
-    public void handleMessage(Message message) {
-        this.messageHandler.accept(message);
+    public void closeConnection(){
+        if(membership != null){
+            membership.utilize();
+        }
     }
-
-    public void addChatRoom(ChatRoom chatRoom) {
-        chatRoom.addMembership(this);
-        chatRooms.add(chatRoom);
-    }
-
-    public void removeChatRoom(ChatRoom chatRoom) {
-        chatRoom.removeMembership(this);
-        chatRooms.remove(chatRoom);
-    }
-
-    public void closeConnection() {
-        chatRooms.forEach(cr -> cr.removeMembership(this));
-        chatRooms.clear();
-    }
-
 }

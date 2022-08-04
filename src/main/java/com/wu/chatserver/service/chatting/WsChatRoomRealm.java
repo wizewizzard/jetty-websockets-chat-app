@@ -18,13 +18,11 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Slf4j
 @ApplicationScoped
 public class WsChatRoomRealm implements ChatRoomRealm {
-    private final Map<User, List<RoomConnection>> userOpenedConnections = new ConcurrentHashMap<>();
+    private final ConnectionPool connectionPool;
     private final ReadWriteLock chatRoomLock = new ReentrantReadWriteLock();
     private final Map<Long, ChatRoom> chatRooms = new HashMap<>();
     private final ExecutorService roomWorkers = Executors.newFixedThreadPool(8);
@@ -34,13 +32,14 @@ public class WsChatRoomRealm implements ChatRoomRealm {
     private int roomUpTime;
 
     @Inject
-    public WsChatRoomRealm(UserService userService,
+    public WsChatRoomRealm(ConnectionPool connectionPool,
+                           UserService userService,
                            ChatRoomService chatRoomService,
                            MessageService messageService) {
+        this.connectionPool = connectionPool;
         this.userService = userService;
         this.messageService = messageService;
         this.chatRoomService = chatRoomService;
-        log.info("Rooms default uptime is set to {}", this.roomUpTime);
     }
 
     @Override
@@ -48,70 +47,70 @@ public class WsChatRoomRealm implements ChatRoomRealm {
         System.out.println("Init called");
         ChatRoomRealm.super.init(properties);
         String roomUpTime = properties.getProperty("RoomUpTime");
-        if(roomUpTime != null)
+        if (roomUpTime != null)
             this.roomUpTime = Integer.parseInt(roomUpTime);
         else
             this.roomUpTime = 0;
+        log.info("Rooms default uptime is set to {}", this.roomUpTime);
     }
 
     @Override
     public ChatApi tryConnect(ConnectionCredentials credentials) throws ChatException {
-        //TODO: method looks ugly. refactor later
         log.info("Trying to connect a user");
+        final BlockingQueue<Message> userMessageQueue = new ArrayBlockingQueue<>(32);
+        RoomConnection roomConnection = connectionPool.establishConnection(credentials);
+        RoomMembership roomMembership = new RoomMembership(roomConnection.getUser(), userMessageQueue::offer);
+        roomConnection.setMembership(roomMembership);
 
-        User user = userService.getUserWithChatRooms(credentials.getUserName())
-                .orElseThrow(() -> new ChatException("No user with given credentials found"));
-        List<com.wu.chatserver.domain.ChatRoom> userChatRoomsDomain = user.getChatRooms();
-        BlockingQueue<Message> queue = new ArrayBlockingQueue<>(32);
-        final RoomConnection roomConnection = new RoomConnection(user, queue::offer);
+        List<com.wu.chatserver.domain.ChatRoom> chatRoomsDomain =
+                chatRoomService.findChatRoomsForUser(roomConnection.getUser().getUserName());
 
-        for (com.wu.chatserver.domain.ChatRoom chatRoomDomain : userChatRoomsDomain) {
-            addMemberForRoom(roomConnection, chatRoomDomain.getId());
+        for (com.wu.chatserver.domain.ChatRoom chatRoomDomain : chatRoomsDomain) {
+            ChatRoom chatRoom;
+            chatRoomLock.readLock().lock();
+            try {
+                chatRoom = chatRooms.get(chatRoomDomain.getId());
+            } finally {
+                chatRoomLock.readLock().unlock();
+            }
+            if (chatRoom != null)
+                chatRoom.addMembership(roomMembership);
         }
-
-        userOpenedConnections.merge(user,
-                Collections.synchronizedList(new LinkedList<>(List.of(roomConnection))),
-                (l1, l2) -> Collections.synchronizedList(Stream.concat(l1.stream(), l2.stream()).collect(Collectors.toList())));
 
         log.info("User was connected");
         return new ChatApi(
                 (Message m) -> {
                     log.debug("Processing ws message {}", m);
-                    if(m.getChatId() == null || m.getBody() == null)
+                    Objects.requireNonNull(m);
+                    if (m.getChatId() == null || m.getBody() == null)
                         throw new ChatException("Invalid message format");
-                    dispatchMessage(roomConnection, m);
+                    dispatchMessage(roomMembership, m);
                 },
                 () -> {
                     log.debug("Waiting a message from the queue");
-                    return queue.take();
+                    return userMessageQueue.take();
                 },
                 () -> {
-                    log.debug("Disconnecting user {}", user.getUserName());
-
-                    List<RoomConnection> roomConnections = userOpenedConnections.get(user);
-                    roomConnection.closeConnection();
-                    roomConnections.remove(roomConnection);
-                    if(roomConnections.isEmpty()){
-                        userService.userSetOnlineStatus(user.getId(), UsersChatSession.OnlineStatus.OFFLINE);
-                    }
-                    log.debug("Connection for user {} was removed", user.getUserName());
+                    connectionPool.closeConnection(roomConnection);
                 });
     }
 
-    private void dispatchMessage(RoomConnection connection, Message message) {
+    private void dispatchMessage(RoomMembership membership, Message message) throws InterruptedException, TimeoutException {
         ChatRoom chatRoom;
+
         chatRoomLock.readLock().lock();
         try {
             chatRoom = chatRooms.get(message.getChatId());
         } finally {
             chatRoomLock.readLock().unlock();
         }
-        if (chatRoom == null)
-            throw new ChatException("This chat room does not exist");
+        if (chatRoom == null) {
+            chatRoom = initChatRoom(message.getChatId());
+        }
         if (!chatRoom.isRunning()) {
             launchChatRoom(chatRoom);
         }
-        chatRoom.sendMessage(connection, message);
+        chatRoom.sendMessage(membership, message);
     }
 
     /**
@@ -121,35 +120,27 @@ public class WsChatRoomRealm implements ChatRoomRealm {
     private ChatRoom initChatRoom(Long chatRoomId) {
         com.wu.chatserver.domain.ChatRoom chatRoomDomain = chatRoomService
                 .findChatRoomWithMembersById(chatRoomId)
-                .orElseThrow();
+                .orElseThrow(() -> new ChatException("Given chat room doe not exist"));
         chatRoomLock.writeLock().lock();
         try {
-            log.debug("Initialising room {}", chatRoomDomain.getName());
-            ChatRoom chatRoom;
-            if(roomUpTime > 0){
-                chatRoom = new ChatRoomImpl(chatRoomDomain,
-                        messageService,
-                        roomUpTime,
-                        null
-                );
-            }
-            else{
-                chatRoom = new ChatRoomImpl(chatRoomDomain,
-                        messageService,
-                        null
-                );
+            log.debug("Initialising room {} with uptime of {} seconds", chatRoomDomain.getName(), roomUpTime);
+            ChatRoom chatRoom = new ChatRoomImpl(chatRoomDomain,
+                    messageService,
+                    null
+            );
+            if (roomUpTime > 0) {
+                chatRoom.setUpTime(roomUpTime);
             }
 
             Set<User> chatMembers = chatRoomDomain.getMembers();
-            userOpenedConnections.keySet()
-                    .forEach(user -> {
-                        if (chatMembers.contains(user)) {
-                            for (RoomConnection connection : userOpenedConnections.get(user)) {
-                                connection.addChatRoom(chatRoom);
-                                chatRoom.addMembership(connection);
-                            }
-                        }
+            for (User chatMember : chatMembers) {
+                List<RoomConnection> userConnections = connectionPool.getUserConnections(chatMember);
+                if (userConnections != null)
+                    userConnections.forEach(conn -> {
+                        chatRoom.addMembership(conn.getMembership());
                     });
+            }
+
             //CAS
             if (chatRooms.get(chatRoomDomain.getId()) == null) {
                 chatRooms.put(chatRoomDomain.getId(), chatRoom);
@@ -164,7 +155,7 @@ public class WsChatRoomRealm implements ChatRoomRealm {
     /**
      * Launches a thread for the given chatroom
      *
-     * @param
+     * @param chatRoom initialized chat room
      * @return
      */
     private ChatRoom launchChatRoom(ChatRoom chatRoom) {
@@ -174,7 +165,6 @@ public class WsChatRoomRealm implements ChatRoomRealm {
         try {
             if (!chatRoom.isRunning()) {
                 roomWorkers.submit(chatRoom);
-                log.debug("Room {} thread started", chatRoom);
             }
             return chatRoom;
         } finally {
@@ -190,22 +180,11 @@ public class WsChatRoomRealm implements ChatRoomRealm {
     }
 
     public void chatRoomCreated(@Observes ChatRoomCreated event) {
-        log.info("Triggered chatRoomCreated");
+        log.trace("Triggered chatRoomCreated");
         //trying to find all members of the room in opened sessions and put them in it
-
-        }
-    }
-
-    private void addMemberForRoom(RoomConnection roomConnection, Long chatRoomId){
-        chatRoomLock.readLock().lock();
-        ChatRoom chatRoom = chatRooms.get(chatRoomId);
-        chatRoomLock.readLock().unlock();
-        if (chatRoom == null) {
-            chatRoom = initChatRoom(chatRoomId);
-        }
-        roomConnection.addChatRoom(chatRoom);
-        if(userOpenedConnections.get(roomConnection.getUser()) == null){
-            userService.userSetOnlineStatus(roomConnection.getUser().getId(), UsersChatSession.OnlineStatus.ONLINE);
+        com.wu.chatserver.domain.ChatRoom chatRoomDomain = event.getChatRoom();
+        if (chatRooms.get(chatRoomDomain.getId()) == null) {
+            initChatRoom(chatRoomDomain.getId());
         }
     }
 
@@ -215,10 +194,18 @@ public class WsChatRoomRealm implements ChatRoomRealm {
      *
      * @param event
      */
-    public void userJoinedChat(@Observes UserJoinedChatRoom event) {
-        log.info("Triggered userJoinedChat");
+    public void userJoinedChatRoom(@Observes UserJoinedChatRoom event) {
+        log.trace("Triggered userJoinedChat");
         //find user connection
         //if it exists then get the chat room and put user there
+        com.wu.chatserver.domain.ChatRoom chatRoomDomain = event.getChatRoom();
+        User user = event.getUser();
+        ChatRoom chatRoom = chatRooms.get(chatRoomDomain.getId());
+        List<RoomConnection> userConnections = connectionPool.getUserConnections(user);
+        if (chatRoom != null && userConnections != null) {
+            userConnections.forEach(c -> chatRoom.addMembership(c.getMembership()));
+            userService.setUserOnlineStatusForRoom(chatRoomDomain.getId(), user.getId(), UsersChatSession.OnlineStatus.ONLINE);
+        }
     }
 
     /**
@@ -227,9 +214,18 @@ public class WsChatRoomRealm implements ChatRoomRealm {
      *
      * @param event
      */
-    public void userLeftChat(@Observes UserLeftChatRoom event) {
-        log.info("Triggered userLeftChat");
+    public void userLeftChatRoom(@Observes UserLeftChatRoom event) {
+        log.trace("Triggered userLeftChat");
         //find user connection
         //if it exists then remove user membership from it
+        com.wu.chatserver.domain.ChatRoom chatRoomDomain = event.getChatRoom();
+        User user = event.getUser();
+        ChatRoom chatRoom = chatRooms.get(chatRoomDomain.getId());
+        List<RoomConnection> userConnections = connectionPool.getUserConnections(user);
+        if (chatRoom != null && userConnections != null) {
+            userConnections.forEach(c -> chatRoom.removeMembership(c.getMembership()));
+            userService.setUserOnlineStatusForRoom(chatRoomDomain.getId(), user.getId(), UsersChatSession.OnlineStatus.OFFLINE);
+        }
+
     }
 }

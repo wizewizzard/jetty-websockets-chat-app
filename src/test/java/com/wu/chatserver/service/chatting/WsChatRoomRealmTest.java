@@ -28,7 +28,7 @@ class WsChatRoomRealmTest {
     private UserService userService;
     private ChatRoomService chatRoomService;
     private MessageService messageService;
-
+    private ConnectionPool connectionPool;
     private ExecutorService executorService;
     @BeforeEach
     public void setUp(){
@@ -37,7 +37,8 @@ class WsChatRoomRealmTest {
         userService = Mockito.mock(UserService.class);
         chatRoomService = Mockito.mock(ChatRoomService.class);
         messageService = Mockito.mock(MessageService.class);
-        realm = new WsChatRoomRealm(userService, chatRoomService, messageService);
+        connectionPool = new ConnectionPool(userService);
+        realm = new WsChatRoomRealm(connectionPool, userService, chatRoomService, messageService);
         realm.init(properties);
         executorService = Executors.newCachedThreadPool();
 
@@ -45,30 +46,38 @@ class WsChatRoomRealmTest {
 
     @Test
     public void shouldConnectAndDisconnectUser() throws InterruptedException, BrokenBarrierException {
-        String userName1 = "testUser1";
-        String userName2 = "testUser2";
-        User user1 = Mockito.mock(User.class);
-        Mockito.when(user1.getUserName()).thenReturn(userName1);
-        User user2 = Mockito.mock(User.class);
-        Mockito.when(user2.getUserName()).thenReturn(userName2);
         ChatRoom chatRoomDomain1 = Mockito.mock(ChatRoom.class);
         ChatRoom chatRoomDomain2 = Mockito.mock(ChatRoom.class);
+
         Mockito.when(chatRoomDomain1.getId()).thenReturn(1L);
         Mockito.when(chatRoomDomain1.getName()).thenReturn("Test chat room #1");
-        Mockito.when(chatRoomDomain1.getMembers()).thenReturn(Set.of(user1, user2));
+
         Mockito.when(chatRoomDomain2.getId()).thenReturn(2L);
         Mockito.when(chatRoomDomain2.getName()).thenReturn("Test chat room #2");
-        Mockito.when(chatRoomDomain2.getMembers()).thenReturn(Set.of(user2));
 
-        Mockito.when(userService.getUserWithChatRooms(userName1)).thenReturn(Optional.of(user1));
-        Mockito.when(userService.getUserWithChatRooms(userName2)).thenReturn(Optional.of(user2));
+        String userName1 = "testUser1";
+
+        User user1 = Mockito.mock(User.class);
+        Mockito.when(user1.getUserName()).thenReturn(userName1);
+        Mockito.when(user1.getId()).thenReturn(ThreadLocalRandom.current().nextLong());
+        Mockito.when(user1.getChatRooms()).thenReturn(List.of(chatRoomDomain1, chatRoomDomain2));
+        Mockito.when(userService.getUserByUserName(user1.getUserName())).thenReturn(Optional.of(user1));
+
+        String userName2 = "testUser2";
+        User user2 = Mockito.mock(User.class);
+        Mockito.when(user2.getUserName()).thenReturn(userName2);
+        Mockito.when(user2.getId()).thenReturn(ThreadLocalRandom.current().nextLong());
+        Mockito.when(user2.getChatRooms()).thenReturn(List.of(chatRoomDomain2));
+        Mockito.when(userService.getUserByUserName(user2.getUserName())).thenReturn(Optional.of(user2));
+
+        Mockito.when(chatRoomService.findChatRoomsForUser(user1.getUserName())).thenReturn(List.of(chatRoomDomain1, chatRoomDomain2));
+        Mockito.when(chatRoomService.findChatRoomsForUser(user2.getUserName())).thenReturn(List.of(chatRoomDomain2));
         Mockito.when(chatRoomService.findChatRoomWithMembersById(chatRoomDomain1.getId())).thenReturn(Optional.of(chatRoomDomain1));
         Mockito.when(chatRoomService.findChatRoomWithMembersById(chatRoomDomain2.getId())).thenReturn(Optional.of(chatRoomDomain2));
-        Mockito.when(user1.getChatRooms()).thenReturn(List.of(chatRoomDomain1, chatRoomDomain2));
-        Mockito.when(user2.getChatRooms()).thenReturn(List.of(chatRoomDomain2));
+        Mockito.when(chatRoomDomain1.getMembers()).thenReturn(Set.of(user1));
+        Mockito.when(chatRoomDomain2.getMembers()).thenReturn(Set.of(user1, user2));
 
         final Phaser phaser = new Phaser(3);
-        //CyclicBarrier barrier = new CyclicBarrier(3);
 
         Runnable client1 = () -> {
             log.info("User thread {} has started", userName1);
@@ -77,16 +86,17 @@ class WsChatRoomRealmTest {
                 api.connect(() -> userName1);
                 log.info("User {} has connected", userName1);
                 phaser.arriveAndAwaitAdvance();
-                api.sendMessage(new Message(chatRoomDomain2.getId(), "Test message from user 1"));
+                api.sendMessage(new Message(chatRoomDomain2.getId(), "Test message from " + userName1));
                 Thread.sleep(10);
                 phaser.arriveAndAwaitAdvance();
                 api.disconnect();
                 phaser.arriveAndDeregister();
             }
             catch (Exception e) {
+                e.printStackTrace();
                 fail("Test was poorly built");
-                throw new RuntimeException(e);
             }
+
 
         };
 
@@ -100,7 +110,7 @@ class WsChatRoomRealmTest {
                 while(true){
                     Message message = api.pollMessage();
                     System.out.println("Received: " + message);
-                    if(message.getBody().equals("Test message from user 1")){
+                    if(message.getBody().equals("Test message from " + userName1)){
                         phaser.arriveAndAwaitAdvance();
                     }
                     if(message.getBody().equals("User " + userName1 + " goes offline")){
@@ -110,7 +120,7 @@ class WsChatRoomRealmTest {
                 }
             } catch (Exception e) {
                 fail("Test was poorly built");
-                throw new RuntimeException(e);
+                e.printStackTrace();
             }
 
         };
@@ -155,8 +165,10 @@ class WsChatRoomRealmTest {
             User user = Mockito.mock(User.class);
             Mockito.when(user.getUserName()).thenReturn(userName);
             Mockito.when(user.getId()).thenReturn(ThreadLocalRandom.current().nextLong());
-            Mockito.when(userService.getUserWithChatRooms(userName)).thenReturn(Optional.of(user));
             Mockito.when(user.getChatRooms()).thenReturn(List.of(chatRoomDomain));
+            Mockito.when(userService.getUserByUserName(userName)).thenReturn(Optional.of(user));
+            Mockito.when(chatRoomService.findChatRoomWithMembersById(chatRoomDomain.getId())).thenReturn(Optional.of(chatRoomDomain));
+            Mockito.when(chatRoomService.findChatRoomsForUser(user.getUserName())).thenReturn(List.of(chatRoomDomain));
 
             mockedUsers.add(user);
             clients.add(() -> {
@@ -245,47 +257,63 @@ class WsChatRoomRealmTest {
         Mockito.when(chatRoomDomain.getMembers()).thenReturn(Set.of(user));
         Mockito.when(user.getUserName()).thenReturn(userName);
         Mockito.when(user.getId()).thenReturn(ThreadLocalRandom.current().nextLong());
-        Mockito.when(userService.getUserWithChatRooms(userName)).thenReturn(Optional.of(user));
+        Mockito.when(userService.getUserByUserName(userName)).thenReturn(Optional.of(user));
         Mockito.when(chatRoomService.findChatRoomWithMembersById(chatRoomDomain.getId())).thenReturn(Optional.of(chatRoomDomain));
+        Mockito.when(chatRoomService.findChatRoomsForUser(user.getUserName())).thenReturn(List.of(chatRoomDomain));
         Mockito.when(user.getChatRooms()).thenReturn(List.of(chatRoomDomain));
 
         Runnable client = () -> {
-            ChatClientAPI api = new ChatClientAPI(realm);
-            api.connect(() -> userName);
-            phaser.arriveAndAwaitAdvance();
-            api.sendMessage(new Message(chatRoomDomain.getId(),"Hello!"));
-            phaser.arriveAndAwaitAdvance();
-            api.disconnect();
-            phaser.arriveAndAwaitAdvance();
-            api.connect(() -> userName);
-            phaser.arriveAndAwaitAdvance();
-            api.sendMessage(new Message(chatRoomDomain.getId(),"Hello again! Did you restart the room?"));
-            phaser.arriveAndAwaitAdvance();
-            api.disconnect();
-            phaser.arriveAndDeregister();
+            try{
+                ChatClientAPI api = new ChatClientAPI(realm);
+                log.info("Client connecting...");
+                api.connect(() -> userName);
+                phaser.arriveAndAwaitAdvance();
+                log.info("Client sending messages...");
+                api.sendMessage(new Message(chatRoomDomain.getId(),"Hello!"));
+                phaser.arriveAndAwaitAdvance();
+                log.info("Client disconnecting...");
+                api.disconnect();
+                phaser.arriveAndAwaitAdvance();
+                log.info("Client connecting...");
+                api.connect(() -> userName);
+                phaser.arriveAndAwaitAdvance();
+                log.info("Client sending messages...");
+                api.sendMessage(new Message(chatRoomDomain.getId(),"Hello again! Did you restart the room?"));
+                phaser.arriveAndAwaitAdvance();
+                log.info("Client disconnecting...");
+                api.disconnect();
+                phaser.arriveAndDeregister();
+            }
+            catch (InterruptedException | TimeoutException exception){
+                log.error("Test failed", exception);
+                fail("Exception fired", exception);
+            }
+            catch (Exception e){
+                e.printStackTrace();
+            }
         };
 
         executorService.submit(client);
         executorService.shutdown();
 
         try {
-            log.info("Client connecting...");
+            log.info("Connection stage");
             phaser.arrive();
             phaser.awaitAdvanceInterruptibly(0, 1000, TimeUnit.MILLISECONDS);
-            log.info("Sending messages...");
+            log.info("Messaging stage");
             phaser.arrive();
             phaser.awaitAdvanceInterruptibly(1, 1000, TimeUnit.MILLISECONDS);
-            log.info("Disconnecting...");
+            log.info("Disconnection stage");
             Thread.sleep(6000);
             phaser.arrive();
             phaser.awaitAdvanceInterruptibly(2, 1000, TimeUnit.MILLISECONDS);
-            log.info("Client connecting...");
+            log.info("Connection stage");
             phaser.arrive();
             phaser.awaitAdvanceInterruptibly(3, 1000, TimeUnit.MILLISECONDS);
-            log.info("Sending messages...");
+            log.info("Messaging stage");
             phaser.arrive();
             phaser.awaitAdvanceInterruptibly(4, 1000, TimeUnit.MILLISECONDS);
-            log.info("Disconnecting...");
+            log.info("Disconnection stage");
             Thread.sleep(6000);
             phaser.arrive();
             phaser.awaitAdvanceInterruptibly(5, 1000, TimeUnit.MILLISECONDS);
