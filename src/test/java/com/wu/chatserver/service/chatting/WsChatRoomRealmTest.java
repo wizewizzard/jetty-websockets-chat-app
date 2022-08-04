@@ -32,11 +32,15 @@ class WsChatRoomRealmTest {
     private ExecutorService executorService;
     @BeforeEach
     public void setUp(){
+        Properties properties = new Properties();
+        properties.setProperty("RoomUpTime", "5");
         userService = Mockito.mock(UserService.class);
         chatRoomService = Mockito.mock(ChatRoomService.class);
         messageService = Mockito.mock(MessageService.class);
         realm = new WsChatRoomRealm(userService, chatRoomService, messageService);
+        realm.init(properties);
         executorService = Executors.newCachedThreadPool();
+
     }
 
     @Test
@@ -54,9 +58,12 @@ class WsChatRoomRealmTest {
         Mockito.when(chatRoomDomain1.getMembers()).thenReturn(Set.of(user1, user2));
         Mockito.when(chatRoomDomain2.getId()).thenReturn(2L);
         Mockito.when(chatRoomDomain2.getName()).thenReturn("Test chat room #2");
+        Mockito.when(chatRoomDomain2.getMembers()).thenReturn(Set.of(user2));
 
         Mockito.when(userService.getUserWithChatRooms(userName1)).thenReturn(Optional.of(user1));
         Mockito.when(userService.getUserWithChatRooms(userName2)).thenReturn(Optional.of(user2));
+        Mockito.when(chatRoomService.findChatRoomWithMembersById(chatRoomDomain1.getId())).thenReturn(Optional.of(chatRoomDomain1));
+        Mockito.when(chatRoomService.findChatRoomWithMembersById(chatRoomDomain2.getId())).thenReturn(Optional.of(chatRoomDomain2));
         Mockito.when(user1.getChatRooms()).thenReturn(List.of(chatRoomDomain1, chatRoomDomain2));
         Mockito.when(user2.getChatRooms()).thenReturn(List.of(chatRoomDomain2));
 
@@ -140,6 +147,7 @@ class WsChatRoomRealmTest {
         Mockito.when(chatRoomDomain.getId()).thenReturn(1L);
         Mockito.when(chatRoomDomain.getName()).thenReturn("Test chat room #1");
 
+
         List<String> userNames = Stream.generate(() -> UUID.randomUUID().toString())
                 .limit(clientsNum)
                 .collect(Collectors.toList());
@@ -180,6 +188,7 @@ class WsChatRoomRealmTest {
                 return messagesReceived;
             });
         });
+        Mockito.when(chatRoomService.findChatRoomWithMembersById(chatRoomDomain.getId())).thenReturn(Optional.of(chatRoomDomain));
         Mockito.when(chatRoomDomain.getMembers()).thenReturn(new HashSet<>(mockedUsers));
 
         //WHEN
@@ -225,10 +234,6 @@ class WsChatRoomRealmTest {
         }
     }
 
-    /**
-     * This test passes if environment variable RoomUpTime is set to 5100+ ms
-     * It is difficult to create valid assertions here. So based on logs, it seems working correctly
-     */
     @Test
     public void shouldStopAndRestartRoom(){
         String userName = "TestUser";
@@ -237,9 +242,11 @@ class WsChatRoomRealmTest {
         final Phaser phaser = new Phaser(2);
         Mockito.when(chatRoomDomain.getId()).thenReturn(1L);
         Mockito.when(chatRoomDomain.getName()).thenReturn("Test chat room #1");
+        Mockito.when(chatRoomDomain.getMembers()).thenReturn(Set.of(user));
         Mockito.when(user.getUserName()).thenReturn(userName);
         Mockito.when(user.getId()).thenReturn(ThreadLocalRandom.current().nextLong());
         Mockito.when(userService.getUserWithChatRooms(userName)).thenReturn(Optional.of(user));
+        Mockito.when(chatRoomService.findChatRoomWithMembersById(chatRoomDomain.getId())).thenReturn(Optional.of(chatRoomDomain));
         Mockito.when(user.getChatRooms()).thenReturn(List.of(chatRoomDomain));
 
         Runnable client = () -> {

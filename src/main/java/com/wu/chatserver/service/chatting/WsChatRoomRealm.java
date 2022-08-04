@@ -56,7 +56,6 @@ public class WsChatRoomRealm implements ChatRoomRealm {
 
     @Override
     public ChatApi tryConnect(ConnectionCredentials credentials) throws ChatException {
-        //TODO: optimize query so it extracts user and chat rooms at once
         //TODO: method looks ugly. refactor later
         log.info("Trying to connect a user");
 
@@ -66,18 +65,8 @@ public class WsChatRoomRealm implements ChatRoomRealm {
         BlockingQueue<Message> queue = new ArrayBlockingQueue<>(32);
         final RoomConnection roomConnection = new RoomConnection(user, queue::offer);
 
-
         for (com.wu.chatserver.domain.ChatRoom chatRoomDomain : userChatRoomsDomain) {
-            chatRoomLock.readLock().lock();
-            ChatRoom chatRoom = chatRooms.get(chatRoomDomain.getId());
-            chatRoomLock.readLock().unlock();
-            if (chatRoom == null) {
-                chatRoom = initChatRoom(chatRoomDomain);
-            }
-            roomConnection.addChatRoom(chatRoom);
-            if(userOpenedConnections.get(user) == null){
-                userService.userSetOnlineStatus(user.getId(), UsersChatSession.OnlineStatus.ONLINE);
-            }
+            addMemberForRoom(roomConnection, chatRoomDomain.getId());
         }
 
         userOpenedConnections.merge(user,
@@ -88,7 +77,8 @@ public class WsChatRoomRealm implements ChatRoomRealm {
         return new ChatApi(
                 (Message m) -> {
                     log.debug("Processing ws message {}", m);
-                    Objects.requireNonNull(m.getChatId());
+                    if(m.getChatId() == null || m.getBody() == null)
+                        throw new ChatException("Invalid message format");
                     dispatchMessage(roomConnection, m);
                 },
                 () -> {
@@ -128,7 +118,10 @@ public class WsChatRoomRealm implements ChatRoomRealm {
      * Puts a new chat room in a map but does not run it
      * puts available memberships in it
      */
-    private ChatRoom initChatRoom(com.wu.chatserver.domain.ChatRoom chatRoomDomain) {
+    private ChatRoom initChatRoom(Long chatRoomId) {
+        com.wu.chatserver.domain.ChatRoom chatRoomDomain = chatRoomService
+                .findChatRoomWithMembersById(chatRoomId)
+                .orElseThrow();
         chatRoomLock.writeLock().lock();
         try {
             log.debug("Initialising room {}", chatRoomDomain.getName());
@@ -193,14 +186,28 @@ public class WsChatRoomRealm implements ChatRoomRealm {
     public void disconnect(String userName) {
         //update sessions if this is the last user's connection!
         //remove session from map and remove member from rooms
+        throw new UnsupportedOperationException("Not implemented");
     }
 
     public void chatRoomCreated(@Observes ChatRoomCreated event) {
         log.info("Triggered chatRoomCreated");
         //trying to find all members of the room in opened sessions and put them in it
 
+        }
     }
 
+    private void addMemberForRoom(RoomConnection roomConnection, Long chatRoomId){
+        chatRoomLock.readLock().lock();
+        ChatRoom chatRoom = chatRooms.get(chatRoomId);
+        chatRoomLock.readLock().unlock();
+        if (chatRoom == null) {
+            chatRoom = initChatRoom(chatRoomId);
+        }
+        roomConnection.addChatRoom(chatRoom);
+        if(userOpenedConnections.get(roomConnection.getUser()) == null){
+            userService.userSetOnlineStatus(roomConnection.getUser().getId(), UsersChatSession.OnlineStatus.ONLINE);
+        }
+    }
 
     /**
      * If ws connection is opened adds user connection to the room.
