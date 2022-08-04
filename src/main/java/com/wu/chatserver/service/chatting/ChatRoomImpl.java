@@ -98,22 +98,17 @@ public class ChatRoomImpl implements ChatRoom{
     }
 
     @Override
-    public void sendMessage(RoomConnection source, Message message) {
+    public void sendMessage(RoomMembership source, Message message) throws InterruptedException, TimeoutException {
         if(roomMembers.contains(source)){
             Message m = new Message(chatRoom.getId(),
                     source.getUser().getId(),
                     source.getUser().getUserName(),
                     message.getBody(),
                     LocalDateTime.now());
-            try {
                 if(!messages.offer(m, 500, TimeUnit.MILLISECONDS)){
-                    throw new ChatException("Unable to send message. Try again later");
+                    throw new TimeoutException("Unable to send message. Try again later");
                 }
                 //messageService.publishMessage(chatRoom.getId(), source.getUser().getId(), message.getBody());
-            }
-            catch (InterruptedException interruptedException){
-                throw new ChatException("Unable to send message. Try again later");
-            }
         }
         else {
             throw new ChatException("User is not part of the chat");

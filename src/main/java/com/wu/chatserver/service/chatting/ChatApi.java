@@ -2,22 +2,21 @@ package com.wu.chatserver.service.chatting;
 
 import com.wu.chatserver.exception.ChatException;
 
-import java.util.function.Consumer;
+import java.util.concurrent.TimeoutException;
 
 public class ChatApi {
-    private final Consumer<Message> messageSender;
+    private final MessageConsumer<Message> messageConsumer;
     private final MessagePoller<Message> pollMessage;
     private final Runnable onDisconnect;
 
-
-    public ChatApi(Consumer<Message> messageSender, MessagePoller<Message> pollMessage, Runnable onDisconnect) {
-        this.messageSender = messageSender;
+    public ChatApi(MessageConsumer<Message> messageConsumer, MessagePoller<Message> pollMessage, Runnable onDisconnect) {
+        this.messageConsumer = messageConsumer;
         this.pollMessage = pollMessage;
         this.onDisconnect = onDisconnect;
     }
 
-    public void sendMessage(Message message) throws ChatException{
-        messageSender.accept(message);
+    public void sendMessage(Message message) throws ChatException, InterruptedException, TimeoutException {
+        messageConsumer.accept(message);
     }
 
     public Message pollMessage() throws InterruptedException, ChatException {

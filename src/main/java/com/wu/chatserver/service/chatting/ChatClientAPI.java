@@ -3,6 +3,7 @@ package com.wu.chatserver.service.chatting;
 import com.wu.chatserver.exception.ChatException;
 
 import java.util.Objects;
+import java.util.concurrent.TimeoutException;
 
 public class ChatClientAPI {
 
@@ -24,7 +25,7 @@ public class ChatClientAPI {
         chatApi = chatRoomRealm.tryConnect(connectionCredentials);
     }
 
-    public void sendMessage(Message message) {
+    public void sendMessage(Message message) throws InterruptedException, TimeoutException {
         Objects.requireNonNull(chatApi);
         chatApi.sendMessage(message);
     }
