@@ -54,7 +54,7 @@ public class ChatRoom {
     public void removeMember(User user) {
         members.remove(user);
         user.getChatRooms().remove(this);
-        usersChatSessions.removeIf(chatSession -> chatSession.getChatSessionId().getUser().equals(user));
+        //usersChatSessions.removeIf(chatSession -> chatSession.getChatSessionId().getUser().equals(user));
     }
 
     public void addMessage(Message message) {

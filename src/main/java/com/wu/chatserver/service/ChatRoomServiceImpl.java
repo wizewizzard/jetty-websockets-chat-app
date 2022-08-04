@@ -2,7 +2,6 @@ package com.wu.chatserver.service;
 
 import com.wu.chatserver.domain.ChatRoom;
 import com.wu.chatserver.domain.User;
-import com.wu.chatserver.domain.UsersChatSession;
 import com.wu.chatserver.dto.ChatRoomDTO;
 import com.wu.chatserver.exception.NotEnoughRightsException;
 import com.wu.chatserver.exception.RequestException;
@@ -20,13 +19,15 @@ import javax.enterprise.event.Event;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
+import javax.persistence.TypedQuery;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
 @ApplicationScoped
 @NoArgsConstructor
 @Slf4j
-public class ChatRoomServiceImpl implements ChatRoomService{
+public class ChatRoomServiceImpl implements ChatRoomService {
     private ChatRoomRepository chatRoomRepository;
     private UserRepository userRepository;
     private EntityManager em;
@@ -62,11 +63,12 @@ public class ChatRoomServiceImpl implements ChatRoomService{
             tx.begin();
             chatRoomRepository.save(chatRoom);
             tx.commit();
+            creationTrigger.fire(new ChatRoomCreated(user, chatRoom));
         } catch (Throwable e) {
             tx.rollback();
             throw new RuntimeException("Transaction was not successful");
         }
-        creationTrigger.fire(new ChatRoomCreated(user, chatRoom));
+
         return chatRoom;
     }
 
@@ -74,7 +76,7 @@ public class ChatRoomServiceImpl implements ChatRoomService{
     public void deleteChatRoom(Long chatRoomId, Long userId) {
         Optional<ChatRoom> chatRoomOptional = chatRoomRepository.findById(chatRoomId);
         ChatRoom chatRoom = chatRoomOptional.orElseThrow();
-        if(Objects.equals(chatRoom.getCreatedBy().getId(), userId)){
+        if (Objects.equals(chatRoom.getCreatedBy().getId(), userId)) {
             EntityTransaction tx = em.getTransaction();
             try {
                 tx.begin();
@@ -85,8 +87,7 @@ public class ChatRoomServiceImpl implements ChatRoomService{
                 tx.rollback();
                 throw new RuntimeException("Transaction was not successful");
             }
-        }
-        else{
+        } else {
             throw new NotEnoughRightsException("You do not have permission to delete this chat room");
         }
     }
@@ -102,7 +103,7 @@ public class ChatRoomServiceImpl implements ChatRoomService{
         ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId).orElseThrow();
         User user = userRepository.findById(userId).orElseThrow();
         EntityTransaction tx = em.getTransaction();
-        if(!chatRoomRepository.isUserMemberOfChatRoom(chatRoom, user)){
+        if (!chatRoomRepository.isUserMemberOfChatRoom(chatRoom, user)) {
             try {
                 tx.begin();
                 chatRoom.addMember(user);
@@ -112,8 +113,7 @@ public class ChatRoomServiceImpl implements ChatRoomService{
                 tx.rollback();
                 throw new RuntimeException("Transaction was not successful");
             }
-        }
-        else{
+        } else {
             throw new RequestException("User is already member of the chat");
         }
     }
@@ -124,7 +124,7 @@ public class ChatRoomServiceImpl implements ChatRoomService{
         ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId).orElseThrow();
         User user = userRepository.findById(userId).orElseThrow();
         EntityTransaction tx = em.getTransaction();
-        if(chatRoomRepository.isUserMemberOfChatRoom(chatRoom, user)) {
+        if (chatRoomRepository.isUserMemberOfChatRoom(chatRoom, user)) {
             try {
                 tx.begin();
                 chatRoom.removeMember(user);
@@ -134,8 +134,7 @@ public class ChatRoomServiceImpl implements ChatRoomService{
                 tx.rollback();
                 throw new RuntimeException("Transaction was not successful");
             }
-        }
-        else{
+        } else {
             throw new RequestException("User is not a member of the chat");
         }
     }
@@ -143,6 +142,14 @@ public class ChatRoomServiceImpl implements ChatRoomService{
     @Override
     public Optional<ChatRoom> findChatRoomWithMembersById(Long chatRoomId) {
         return chatRoomRepository.findChatRoomByIdWithMembers(chatRoomId);
+    }
+
+    @Override
+    public List<ChatRoom> findChatRoomsForUser(String userName) {
+        String jpqlQuery = "SELECT cr FROM User u JOIN FETCH u.chatRooms cr JOIN FETCH cr.createdBy where u.userName=:userName";
+        TypedQuery<ChatRoom> query = em.createQuery(jpqlQuery, ChatRoom.class);
+        query.setParameter("userName", userName);
+        return query.getResultList();
     }
 
 }

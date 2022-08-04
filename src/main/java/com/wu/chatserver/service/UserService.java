@@ -14,6 +14,7 @@ import com.wu.chatserver.repository.UsersChatSessionDao;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.jasypt.util.password.PasswordEncryptor;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -26,6 +27,7 @@ import java.util.Optional;
 
 @ApplicationScoped
 @NoArgsConstructor
+@Slf4j
 public class UserService {
     private PasswordEncryptor passwordEncryptor;
     private EntityManager em;
@@ -51,7 +53,7 @@ public class UserService {
     }
 
     public void registerUser(UserDTO.Request.Registration userRegistrationDTO) {
-        if(!userDao.uniqueUserNameAndEmail(userRegistrationDTO.getUserName(), userRegistrationDTO.getEmail())){
+        if (!userDao.uniqueUserNameAndEmail(userRegistrationDTO.getUserName(), userRegistrationDTO.getEmail())) {
             throw new RegistrationException("User with specified user name or email already exists");
         }
 
@@ -74,12 +76,12 @@ public class UserService {
     public String loginUser(UserDTO.Request.Login loginDto) {
         User user = userDao.findUserByUserName(loginDto.getUserName())
                 .orElseThrow(() -> new AuthenticationException("Wrong credentials"));
-        if(!passwordEncryptor.checkPassword(loginDto.getPassword(), user.getPassword()))
-            throw  new AuthenticationException("Wrong credentials");
-        return jwtManager.generate(Map.of("userId", user.getId(),"userName", user.getUserName()));
+        if (!passwordEncryptor.checkPassword(loginDto.getPassword(), user.getPassword()))
+            throw new AuthenticationException("Wrong credentials");
+        return jwtManager.generate(Map.of("userId", user.getId(), "userName", user.getUserName()));
     }
 
-    public UserDTO.Response.UserInfo verifyToken(TokenDTO tokenDTO){
+    public UserDTO.Response.UserInfo verifyToken(TokenDTO tokenDTO) {
         Jws<Claims> claimsJws = jwtManager.parse(tokenDTO.getToken());
         Long userId = claimsJws.getBody().get("userId", Long.class);
         User user = userDao.findById(userId).orElseThrow(() -> new AuthenticationException("Invalid token"));
@@ -87,28 +89,25 @@ public class UserService {
 
     }
 
-    public Optional<User> getUserByUserName(String userName){
+    public Optional<User> getUserByUserName(String userName) {
         return userDao.findUserByUserName(userName);
     }
+
     public void setUserOnlineStatusForRoom(Long chatRoomId, Long userId, UsersChatSession.OnlineStatus onlineStatus) {
+        log.info("Setting {} status for user {} in room {}", onlineStatus, userId, chatRoomId);
         ChatRoom chatRoom = chatRoomDao.findById(chatRoomId).orElseThrow();
         User user = userDao.findById(userId).orElseThrow();
-        if(chatRoomDao.isUserMemberOfChatRoom(chatRoom, user)){
+        if (chatRoomDao.isUserMemberOfChatRoom(chatRoom, user)) {
             sessionDao.setOnlineStatus(chatRoom, user, onlineStatus, LocalDateTime.now());
         }
-
     }
 
-    public void userSetOnlineStatus(Long userId, UsersChatSession.OnlineStatus onlineStatus){
+    public void userSetOnlineStatus(Long userId, UsersChatSession.OnlineStatus onlineStatus) {
+        log.info("Setting {} status for user {}", onlineStatus, userId);
         User user = userDao.findById(userId).orElseThrow();
-        if(onlineStatus.equals(UsersChatSession.OnlineStatus.ONLINE))
+        if (onlineStatus.equals(UsersChatSession.OnlineStatus.ONLINE))
             sessionDao.setUserOnline(user, LocalDateTime.now());
         else
             sessionDao.setUserOffline(user, LocalDateTime.now());
     }
-
-    public Optional<User> getUserWithChatRooms(String userName){
-        return userDao.findUserWithChatRoomsByUserName(userName);
-    }
-
 }

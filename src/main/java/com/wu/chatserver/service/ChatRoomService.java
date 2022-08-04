@@ -3,6 +3,7 @@ package com.wu.chatserver.service;
 import com.wu.chatserver.domain.ChatRoom;
 import com.wu.chatserver.dto.ChatRoomDTO;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface ChatRoomService {
@@ -17,4 +18,6 @@ public interface ChatRoomService {
     public void removeUserFromChat(Long chatRoomId, Long id);
 
     public Optional<ChatRoom> findChatRoomWithMembersById(Long chatRoomId);
+
+    public List<ChatRoom> findChatRoomsForUser(String userName);
 }
