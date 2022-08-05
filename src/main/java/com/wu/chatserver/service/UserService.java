@@ -98,16 +98,33 @@ public class UserService {
         ChatRoom chatRoom = chatRoomDao.findById(chatRoomId).orElseThrow();
         User user = userDao.findById(userId).orElseThrow();
         if (chatRoomDao.isUserMemberOfChatRoom(chatRoom, user)) {
-            sessionDao.setOnlineStatus(chatRoom, user, onlineStatus, LocalDateTime.now());
+            EntityTransaction tx = em.getTransaction();
+            try {
+                tx.begin();
+                sessionDao.setOnlineStatus(chatRoom, user, onlineStatus, LocalDateTime.now());
+                tx.commit();
+            } catch (Throwable e) {
+                tx.rollback();
+                throw new RuntimeException("Transaction was not successful");
+            }
         }
     }
 
     public void userSetOnlineStatus(Long userId, UsersChatSession.OnlineStatus onlineStatus) {
         log.info("Setting {} status for user {}", onlineStatus, userId);
         User user = userDao.findById(userId).orElseThrow();
-        if (onlineStatus.equals(UsersChatSession.OnlineStatus.ONLINE))
-            sessionDao.setUserOnline(user, LocalDateTime.now());
-        else
-            sessionDao.setUserOffline(user, LocalDateTime.now());
+        EntityTransaction tx = em.getTransaction();
+        try {
+            tx.begin();
+            if (onlineStatus.equals(UsersChatSession.OnlineStatus.ONLINE))
+                sessionDao.setUserOnline(user, LocalDateTime.now());
+            else
+                sessionDao.setUserOffline(user, LocalDateTime.now());
+            tx.commit();
+        } catch (Throwable e) {
+            tx.rollback();
+            throw new RuntimeException("Transaction was not successful");
+        }
+
     }
 }

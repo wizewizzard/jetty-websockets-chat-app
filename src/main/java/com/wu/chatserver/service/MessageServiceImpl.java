@@ -23,7 +23,6 @@ public class MessageServiceImpl implements MessageService {
     private UserRepository userRepository;
     private MessageRepository messageRepository;
     private EntityManager em;
-
     @Inject
     public MessageServiceImpl(ChatRoomRepository chatRoomRepository,
                               UserRepository userRepository,
