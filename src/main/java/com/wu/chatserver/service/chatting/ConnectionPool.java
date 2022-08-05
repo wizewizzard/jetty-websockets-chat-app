@@ -34,6 +34,7 @@ public class ConnectionPool {
         return userOpenedConnections.get(user);
     }
 
+    @ActivateRequestContext
     public RoomConnection establishConnection(ConnectionCredentials connectionCredentials) {
         User user = userService.getUserByUserName(connectionCredentials.getUserName()).orElseThrow();
         RoomConnection roomConnection = new RoomConnection(user);
@@ -47,6 +48,7 @@ public class ConnectionPool {
         return roomConnection;
     }
 
+    @ActivateRequestContext
     public void closeConnection(RoomConnection roomConnection) {
         User user = roomConnection.getUser();
         log.debug("Disconnecting user {}", user.getUserName());
