@@ -10,6 +10,8 @@ public class DtoMapping {
     @Produces
     @Dependent
     public ObjectMapper objectMapper(){
-        return new ObjectMapper();
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.findAndRegisterModules();
+        return mapper;
     }
 }
