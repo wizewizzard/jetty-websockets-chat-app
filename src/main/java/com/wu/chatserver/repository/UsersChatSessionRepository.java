@@ -85,7 +85,7 @@ public class UsersChatSessionRepository extends GenericDaoSkeletal<ChatSessionId
         SetJoin<User, UsersChatSession> chatSessions = members.join(User_.chatSessions, JoinType.LEFT);
 
         query.multiselect(
-                root.get(User_.ID).alias("userId"),
+                members.get(User_.ID).alias("userId"),
                 members.get(User_.USER_NAME).alias("userName"),
                 chatSessions.get(UsersChatSession_.STARTED_AT).alias("startedAt"),
                 chatSessions.get(UsersChatSession_.ENDED_AT).alias("endedAt")
