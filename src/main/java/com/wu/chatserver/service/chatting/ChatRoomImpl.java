@@ -6,6 +6,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.jboss.weld.context.activator.ActivateRequestContext;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -15,6 +16,8 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @Slf4j
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
@@ -23,23 +26,26 @@ public class ChatRoomImpl implements ChatRoom{
     private static int DEFAULT_UPTIME = 60;
     @EqualsAndHashCode.Include
     private final com.wu.chatserver.domain.ChatRoom chatRoom;
-    private final MessageService messageService;
     private final Runnable callback;
     @Getter
     @Setter
     private int upTime;
     private volatile boolean isRunning;
     BlockingQueue<Message> messages = new ArrayBlockingQueue<>(DEFAULT_CAPACITY);
-    List<RoomMembership> roomMembers = Collections.synchronizedList(new ArrayList<>());
+    private final List<RoomMembership> roomMembers = new ArrayList<>();
+    private final ReadWriteLock membersLock = new ReentrantReadWriteLock();
 
     public ChatRoomImpl(com.wu.chatserver.domain.ChatRoom chatRoom,
-                        MessageService messageService,
                         Runnable callback) {
         this.chatRoom = chatRoom;
-        this.messageService = messageService;
         this.callback = callback;
         isRunning = false;
         upTime = DEFAULT_UPTIME;
+    }
+
+    @Override
+    public void setRunning(boolean setRunning) {
+        isRunning = setRunning;
     }
 
     @Override
@@ -47,21 +53,26 @@ public class ChatRoomImpl implements ChatRoom{
         isRunning = true;
         log.debug("Chat room {} started.", chatRoom.getName());
         try {
-            while(!Thread.interrupted()){
+            while(!Thread.interrupted() && isRunning){
                 Message message = messages.poll(upTime, TimeUnit.SECONDS);
                 log.info("Polled message {} from queue in the chat room {} sending to {} number of users",
                         message, chatRoom.getName(), roomMembers.size());
                 if(message == null){
                     break;
                 }
-
-                for (RoomMembership roomMember: roomMembers
-                     ) {
-                    roomMember.handleMessage(message);
+                membersLock.readLock().lock();
+                try{
+                    for (RoomMembership roomMember: roomMembers
+                    ) {
+                        roomMember.handleMessage(message);
+                    }
+                }
+                finally {
+                    membersLock.readLock().unlock();
                 }
             }
         }
-        catch (InterruptedException e) {
+        catch (InterruptedException ignored) {
         }
         log.debug("Chat room {} is going offline", chatRoom.getName());
         isRunning = false;
@@ -71,35 +82,47 @@ public class ChatRoomImpl implements ChatRoom{
 
     @Override
     public void addMembership(RoomMembership membership) {
-        if(!roomMembers.contains(membership)){
-            roomMembers.add(membership);
-            membership.addChatRoom(this);
-            messages.offer(new Message(chatRoom.getId(),
-                    null,
-                    "System",
-                    "User " +  membership.getUser().getUserName() + " is online",
-                    LocalDateTime.now()));
-            log.info("User {} was added to the chat room {}", membership.getUser().getUserName(), chatRoom.getName());
+        membersLock.writeLock().lock();
+        try{
+            if(!roomMembers.contains(membership)){
+                roomMembers.add(membership);
+                membership.addChatRoom(this);
+                messages.offer(new Message(chatRoom.getId(),
+                        null,
+                        "System",
+                        "User " +  membership.getUser().getUserName() + " is online",
+                        LocalDateTime.now()));
+                log.info("User {} was added to the chat room {}", membership.getUser().getUserName(), chatRoom.getName());
+            }
+            else{
+                log.warn("Trying to add already existing connection");
+            }
         }
-        else{
-            throw new AssertionError("Wrong chat room membership management");
+        finally {
+            membersLock.writeLock().unlock();
         }
     }
 
     @Override
     public void removeMembership(RoomMembership membership) {
-        if(roomMembers.contains(membership)){
-            roomMembers.remove(membership);
-            membership.removeChatRoom(this);
-            messages.offer(new Message(chatRoom.getId(),
-                    null,
-                    "System",
-                    "User "  +  membership.getUser().getUserName() + " goes offline",
-                    LocalDateTime.now()));
-            log.info("User {} was removed from the chat room {}", membership.getUser().getUserName(), chatRoom.getName());
+        membersLock.writeLock().lock();
+        try{
+            if(roomMembers.contains(membership)){
+                roomMembers.remove(membership);
+                membership.removeChatRoom(this);
+                messages.offer(new Message(chatRoom.getId(),
+                        null,
+                        "System",
+                        "User "  +  membership.getUser().getUserName() + " goes offline",
+                        LocalDateTime.now()));
+                log.info("User {} was removed from the chat room {}", membership.getUser().getUserName(), chatRoom.getName());
+            }
+            else{
+                log.warn("Trying to delete membership that does not exist");
+            }
         }
-        else{
-            throw new AssertionError("Wrong chat room membership management");
+        finally {
+            membersLock.writeLock().unlock();
         }
     }
 

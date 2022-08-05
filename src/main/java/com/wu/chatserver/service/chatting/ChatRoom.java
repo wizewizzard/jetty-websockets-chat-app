@@ -11,6 +11,7 @@ public interface ChatRoom extends Runnable {
     public void sendMessage(RoomMembership source, Message message) throws TimeoutException, InterruptedException;
 
     public boolean isRunning();
+    public void setRunning(boolean setRunning);
 
     public void setUpTime(int uptimeInSeconds);
 }

@@ -7,11 +7,15 @@ import com.wu.chatserver.service.ChatRoomService;
 import com.wu.chatserver.service.MessageService;
 import com.wu.chatserver.service.UserService;
 import com.wu.chatserver.service.chatting.event.ChatRoomCreated;
+import com.wu.chatserver.service.chatting.event.MessageReceived;
 import com.wu.chatserver.service.chatting.event.UserJoinedChatRoom;
 import com.wu.chatserver.service.chatting.event.UserLeftChatRoom;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jboss.weld.context.activator.ActivateRequestContext;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Event;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import java.util.*;
@@ -30,6 +34,8 @@ public class WsChatRoomRealm implements ChatRoomRealm {
     private final ChatRoomService chatRoomService;
     private final MessageService messageService;
     private int roomUpTime;
+    @Inject
+    private Event<MessageReceived> messageReceivedEvent;
 
     @Inject
     public WsChatRoomRealm(ConnectionPool connectionPool,
@@ -54,6 +60,7 @@ public class WsChatRoomRealm implements ChatRoomRealm {
         log.info("Rooms default uptime is set to {}", this.roomUpTime);
     }
 
+    @ActivateRequestContext
     @Override
     public ChatApi tryConnect(ConnectionCredentials credentials) throws ChatException {
         log.info("Trying to connect a user");
@@ -75,12 +82,16 @@ public class WsChatRoomRealm implements ChatRoomRealm {
             }
             if(chatRoom == null){
                 chatRoom = initChatRoom(chatRoomDomain);
+                launchChatRoom(chatRoom);
                 synchronizeMembership(chatRoom, chatRoomDomain);
             }
-            if(!chatRoom.isRunning()){
+            else if(!chatRoom.isRunning()){
                 launchChatRoom(chatRoom);
+                chatRoom.addMembership(roomMembership);
             }
-            chatRoom.addMembership(roomMembership);
+            else{
+                chatRoom.addMembership(roomMembership);
+            }
         }
 
         log.info("User was connected");
@@ -100,7 +111,7 @@ public class WsChatRoomRealm implements ChatRoomRealm {
                     connectionPool.closeConnection(roomConnection);
                 });
     }
-
+    //@ActivateRequestContext
     private void dispatchMessage(RoomMembership membership, Message message) throws InterruptedException, TimeoutException {
         ChatRoom chatRoom;
 
@@ -117,6 +128,7 @@ public class WsChatRoomRealm implements ChatRoomRealm {
             launchChatRoom(chatRoom);
         }
         chatRoom.sendMessage(membership, message);
+        messageReceivedEvent.fire(new MessageReceived(membership.getUser(), message));
     }
 
     /**
@@ -124,30 +136,13 @@ public class WsChatRoomRealm implements ChatRoomRealm {
      * puts available memberships in it
      */
     private ChatRoom initChatRoom(com.wu.chatserver.domain.ChatRoom chatRoomDomain) {
-        /*com.wu.chatserver.domain.ChatRoom chatRoomDomain = chatRoomService
-                .findChatRoomWithMembersById(chatRoomId)
-                .orElseThrow(() -> new ChatException("Given chat room doe not exist"));*/
         chatRoomLock.writeLock().lock();
         try {
             log.debug("Initialising room {} with uptime of {} seconds", chatRoomDomain.getName(), roomUpTime);
-            ChatRoom chatRoom = new ChatRoomImpl(chatRoomDomain,
-                    messageService,
-                    null
-            );
+            ChatRoom chatRoom = new ChatRoomImpl(chatRoomDomain,null);
             if (roomUpTime > 0) {
                 chatRoom.setUpTime(roomUpTime);
             }
-
-            /*Set<User> chatMembers = chatRoomDomain.getMembers();
-            for (User chatMember : chatMembers) {
-                List<RoomConnection> userConnections = connectionPool.getUserConnections(chatMember);
-                if (userConnections != null)
-                    userConnections.forEach(conn -> {
-                        chatRoom.addMembership(conn.getMembership());
-                        userService.setUserOnlineStatusForRoom(chatRoomDomain.getId(), chatMember.getId(), UsersChatSession.OnlineStatus.ONLINE);
-                    });
-            }*/
-
             //CAS
             if (chatRooms.get(chatRoomDomain.getId()) == null) {
                 chatRooms.put(chatRoomDomain.getId(), chatRoom);
@@ -166,7 +161,6 @@ public class WsChatRoomRealm implements ChatRoomRealm {
             if (userConnections != null)
                 userConnections.forEach(conn -> {
                     chatRoom.addMembership(conn.getMembership());
-                    //userService.setUserOnlineStatusForRoom(chatRoomDomain.getId(), chatMember.getId(), UsersChatSession.OnlineStatus.ONLINE);
                 });
         }
     }
@@ -183,6 +177,7 @@ public class WsChatRoomRealm implements ChatRoomRealm {
         chatRoomLock.writeLock().lock();
         try {
             if (!chatRoom.isRunning()) {
+                chatRoom.setRunning(true);
                 roomWorkers.submit(chatRoom);
             }
             return chatRoom;
