@@ -2,9 +2,11 @@ package com.wu.chatserver.service.chatting;
 
 import com.wu.chatserver.domain.User;
 import com.wu.chatserver.domain.UsersChatSession;
+import com.wu.chatserver.exception.ChatException;
 import com.wu.chatserver.service.UserService;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jboss.weld.context.activator.ActivateRequestContext;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -21,6 +23,7 @@ import java.util.stream.Stream;
  */
 @ApplicationScoped
 @Slf4j
+@NoArgsConstructor
 public class ConnectionPool {
     private final Map<User, List<RoomConnection>> userOpenedConnections = new ConcurrentHashMap<>();
     private UserService userService;
@@ -36,7 +39,7 @@ public class ConnectionPool {
 
     @ActivateRequestContext
     public RoomConnection establishConnection(ConnectionCredentials connectionCredentials) {
-        User user = userService.getUserByUserName(connectionCredentials.getUserName()).orElseThrow();
+        User user = userService.getUserByUserName(connectionCredentials.getUserName()).orElseThrow(() -> new ChatException("No user found"));
         RoomConnection roomConnection = new RoomConnection(user);
         if (userOpenedConnections.get(user) == null) {
             //First connection user opened. Online status must be set

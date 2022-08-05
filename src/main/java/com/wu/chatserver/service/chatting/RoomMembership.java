@@ -16,7 +16,6 @@ import java.util.concurrent.TimeoutException;
  */
 @Slf4j
 public class RoomMembership {
-    @EqualsAndHashCode.Include
     @Getter
     private final User user;
     @Setter
@@ -57,10 +56,5 @@ public class RoomMembership {
 
     public void removeChatRoom(ChatRoom chatRoom) {
         chatRooms.remove(chatRoom);
-    }
-
-    public void utilize() {
-        chatRooms.forEach(cr -> cr.removeMembership(this));
-        chatRooms.clear();
     }
 }

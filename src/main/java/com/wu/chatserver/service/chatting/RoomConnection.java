@@ -36,7 +36,8 @@ public class RoomConnection {
 
     public void closeConnection(){
         if(membership != null){
-            membership.utilize();
+            Set<ChatRoom> chatRooms = new HashSet<>(membership.getChatRooms());
+            chatRooms.forEach(cr -> cr.removeMembership(membership));
         }
     }
 }
