@@ -146,10 +146,9 @@ public class ChatRoomServiceImpl implements ChatRoomService {
 
     @Override
     public List<ChatRoom> findChatRoomsForUser(String userName) {
-        String jpqlQuery = "SELECT cr FROM User u JOIN FETCH u.chatRooms cr JOIN FETCH cr.createdBy where u.userName=:userName";
-        TypedQuery<ChatRoom> query = em.createQuery(jpqlQuery, ChatRoom.class);
-        query.setParameter("userName", userName);
-        return query.getResultList();
+        User user = userRepository.findUserWithChatRoomsByUserName(userName)
+                .orElseThrow(() -> new RequestException("User does not exist"));
+        return user.getChatRooms();
     }
 
 }
