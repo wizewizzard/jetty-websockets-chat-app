@@ -36,7 +36,10 @@ public class UserRepository extends GenericDaoSkeletal<Long, User> implements Us
 
     @Override
     public Optional<User> findUserWithChatRoomsByUserName(String userName) {
-        String jpqlQuery = "FROM User u JOIN FETCH u.chatRooms cr JOIN FETCH cr.createdBy where u.userName=:userName";
+        String jpqlQuery = "SELECT u FROM User u " +
+                "LEFT JOIN FETCH u.chatRooms cr " +
+                "LEFT JOIN FETCH cr.createdBy " +
+                "WHERE u.userName=:userName";
         TypedQuery<User> query = em.createQuery(jpqlQuery, User.class);
         query.setParameter("userName", userName);
         try {

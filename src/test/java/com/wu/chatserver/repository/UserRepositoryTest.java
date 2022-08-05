@@ -124,4 +124,43 @@ class UserRepositoryTest {
                     assertThat(userFetched.getChatRooms()).containsAll(usersChatRooms);
         });
     }
+
+    @Test
+    void findUserWithChatRoomsByUserName() {
+        List<User> users = testData.getUsers();
+        assertThat(users).hasSizeGreaterThan(0);
+        User julia = users.stream().filter(u -> u.getUserName().equals("Julia")).findFirst().orElseThrow();
+        User harry = users.stream().filter(u -> u.getUserName().equals("Harry")).findFirst().orElseThrow();
+        User denny = users.stream().filter(u -> u.getUserName().equals("Denny")).findFirst().orElseThrow();
+        assertThat(harry.getChatRooms()).hasSizeGreaterThan(0);
+        assertThat(julia.getChatRooms()).hasSizeGreaterThan(0);
+        assertThat(denny.getChatRooms()).hasSize(0);
+
+        Optional<User> juliaOptional = userRepositoryUT.findUserWithChatRoomsByUserName(julia.getUserName());
+        Optional<User> harryOptional = userRepositoryUT.findUserWithChatRoomsByUserName(harry.getUserName());
+        Optional<User> dennyOptional = userRepositoryUT.findUserWithChatRoomsByUserName(denny.getUserName());
+
+        assertThat(juliaOptional).isPresent()
+                .get()
+                .satisfies(u ->
+                {
+                    assertThat(u.getChatRooms()).hasSize(julia.getChatRooms().size());
+                    assertThat(u.getChatRooms()).containsAll(julia.getChatRooms());
+                });
+        assertThat(harryOptional).isPresent()
+                .get()
+                .satisfies(u ->
+                {
+                    assertThat(u.getChatRooms()).hasSize(harry.getChatRooms().size());
+                    assertThat(u.getChatRooms()).containsAll(harry.getChatRooms());
+                });
+        assertThat(dennyOptional).isPresent()
+                .get()
+                .satisfies(u ->
+                {
+                    assertThat(u.getChatRooms()).hasSize(denny.getChatRooms().size());
+                    assertThat(u.getChatRooms()).containsAll(denny.getChatRooms());
+                });
+
+    }
 }

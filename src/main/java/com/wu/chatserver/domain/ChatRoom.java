@@ -48,6 +48,7 @@ public class ChatRoom {
         user.getChatRooms().add(this);
         UsersChatSession chatSession = new UsersChatSession();
         chatSession.setChatSessionId(new ChatSessionId(this, user));
+        user.getChatSessions().add(chatSession);
         usersChatSessions.add(chatSession);
     }
 

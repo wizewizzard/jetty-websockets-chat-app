@@ -77,6 +77,13 @@ public class ChatServer {
         context.addServlet(new ServletHolder(TokenVerifyServlet.class), "/api/auth/verify");
         context.addServlet(new ServletHolder(ChatManagementServlet.class), "/api/chat");
         context.addServlet(new ServletHolder(ChatMembershipServlet.class), "/api/chat/membership/*");
+
+        JavaxWebSocketServletContainerInitializer.configure(context, (servletContext, wsContainer) ->
+        {
+            wsContainer.setDefaultMaxTextMessageBufferSize(65535);
+            wsContainer.addEndpoint(ChatSocket.class);
+        });
+
         context.setErrorHandler(new ErrorHandler());
         server.setHandler(context);
         server.start();
@@ -94,9 +101,13 @@ public class ChatServer {
         constraint.setRoles(new String[]{"user"});
         constraint.setAuthenticate(true);
 
-        ConstraintMapping cm = new ConstraintMapping();
-        cm.setConstraint(constraint);
-        cm.setPathSpec("/api/chat/*");
+        ConstraintMapping chatApi = new ConstraintMapping();
+        chatApi.setConstraint(constraint);
+        chatApi.setPathSpec("/api/chat/*");
+
+        ConstraintMapping wsChatting = new ConstraintMapping();
+        wsChatting.setConstraint(constraint);
+        wsChatting.setPathSpec("/wssocket/chat");
 
         ConstraintMapping authCm = new ConstraintMapping();
         authCm.setPathSpec("/api/auth/*");
@@ -105,7 +116,7 @@ public class ChatServer {
         Objects.requireNonNull(properties.getProperty("jwt.issuer"));
         Objects.requireNonNull(properties.getProperty("jwt.secret"));
 
-        security.setConstraintMappings(new ConstraintMapping[]{authCm, cm});
+        security.setConstraintMappings(new ConstraintMapping[]{authCm, chatApi, wsChatting});
         JwtAuthenticator jwtAuthenticator = new JwtAuthenticator();
         jwtAuthenticator.setJwtManager(new JwtManager(properties.getProperty("jwt.issuer"),
                 Base64.getEncoder().encode(properties.getProperty("jwt.secret")

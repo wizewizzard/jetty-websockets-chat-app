@@ -90,7 +90,7 @@ class UsersChatSessionRepositoryTest {
         User onlineUser = users.stream().filter(u -> u.getUserName().equals("Jack")).findFirst().orElseThrow();
         User offlineUser = users.stream().filter(u -> u.getUserName().equals("Julia")).findFirst().orElseThrow();
         User externalUser = users.stream().filter(u -> u.getUserName().equals("Denny")).findFirst().orElseThrow();
-
+        List<UserDTO.Response.UserOnlineStatus> usersOnlineStatuses1 = chatSessionRepositoryUT.getUsersOnlineStatusForChatRoom(chatRoom);
         assertThat(chatRoom.getMembers()).contains(onlineUser);
         assertThat(chatRoom.getMembers()).contains(offlineUser);
         assertThat(chatRoom.getMembers()).doesNotContain(externalUser);

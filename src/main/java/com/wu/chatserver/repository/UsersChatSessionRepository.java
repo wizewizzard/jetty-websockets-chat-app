@@ -26,16 +26,7 @@ public class UsersChatSessionRepository extends GenericDaoSkeletal<ChatSessionId
                                 UsersChatSession.OnlineStatus onlineStatus,
                                 LocalDateTime updateDate) {
 
-        Optional<UsersChatSession> sessionOptional = this.findById(new ChatSessionId(chatRoom, user));
-        UsersChatSession chatSession;
-        if(sessionOptional.isPresent()){
-            chatSession = sessionOptional.get();
-        }
-        else{
-            chatSession = new UsersChatSession();
-            chatSession.setChatSessionId(new ChatSessionId(chatRoom, user));
-        }
-
+        UsersChatSession chatSession = this.findById(new ChatSessionId(chatRoom, user)).orElseThrow();
         if(onlineStatus.equals(UsersChatSession.OnlineStatus.ONLINE)){
             chatSession.setStartedAt(updateDate);
             chatSession.setEndedAt(null);
@@ -80,9 +71,13 @@ public class UsersChatSessionRepository extends GenericDaoSkeletal<ChatSessionId
     public List<UserDTO.Response.UserOnlineStatus> getUsersOnlineStatusForChatRoom(ChatRoom chatRoom) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Tuple> query = cb.createQuery(Tuple.class);
-        Root<ChatRoom> root = query.from(ChatRoom.class);
-        SetJoin<ChatRoom, User> members = root.join(ChatRoom_.members, JoinType.LEFT);
-        SetJoin<User, UsersChatSession> chatSessions = members.join(User_.chatSessions, JoinType.LEFT);
+            Root<ChatRoom> root = query.from(ChatRoom.class);
+        SetJoin<ChatRoom, User> members = root.join(ChatRoom_.members, JoinType.INNER);
+        SetJoin<ChatRoom, UsersChatSession> chatSessions = root.join(ChatRoom_.usersChatSessions, JoinType.LEFT);
+
+        Predicate p1 = cb.equal(root.get(ChatRoom_.ID), chatSessions.get(UsersChatSession_.CHAT_SESSION_ID).get(ChatSessionId_.CHAT_ROOM));
+        Predicate p2 = cb.equal(members.get(User_.ID), chatSessions.get(UsersChatSession_.CHAT_SESSION_ID).get(ChatSessionId_.USER));
+        chatSessions.on(cb.and(p1, p2));
 
         query.multiselect(
                 members.get(User_.ID).alias("userId"),
@@ -95,7 +90,9 @@ public class UsersChatSessionRepository extends GenericDaoSkeletal<ChatSessionId
         Predicate chatEq = cb.equal(root.get(ChatRoom_.id), chatId);
 
         query.where(chatEq);
-        List<Tuple> tuples = em.createQuery(query).setParameter(chatId, chatRoom.getId()).getResultList();
+        List<Tuple> tuples = em.createQuery(query)
+                .setParameter(chatId, chatRoom.getId())
+                .getResultList();
         List<UserDTO.Response.UserOnlineStatus> userOnlineStatuses = new ArrayList<>();
         tuples.forEach(tuple -> {
             UserDTO.Response.UserOnlineStatus userOnlineStatus = new UserDTO.Response.UserOnlineStatus();
