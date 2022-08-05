@@ -12,9 +12,12 @@ import com.wu.chatserver.service.chatting.event.UserLeftChatRoom;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.platform.commons.support.HierarchyTraversalMode;
+import org.junit.platform.commons.support.ReflectionSupport;
 import org.mockito.Mockito;
 
 import javax.enterprise.event.Event;
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
@@ -45,6 +48,17 @@ class WsChatRoomRealmEventsTest {
         realm = new WsChatRoomRealm(connectionPool, userService, chatRoomService, messageService);
         realm.init(properties);
         executorService = Executors.newCachedThreadPool();
+
+        List<Field> triggers = ReflectionSupport
+                .findFields(WsChatRoomRealm.class, f -> f.getType().equals(Event.class), HierarchyTraversalMode.TOP_DOWN);
+        triggers.forEach(t -> {
+            try {
+                t.setAccessible(true);
+                t.set(realm, Mockito.mock(Event.class));
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     @Test
@@ -84,10 +98,12 @@ class WsChatRoomRealmEventsTest {
                 log.info("Client disconnecting...");
                 api.disconnect();
                 phaser.arriveAndAwaitAdvance();
-            } catch (InterruptedException | TimeoutException e) {
+            } catch (Throwable e) {
+                log.error("Exception", e);
                 fail("Exception fired", e);
                 e.printStackTrace();
             }
+
 
         };
 

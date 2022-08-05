@@ -3,6 +3,7 @@ package com.wu.chatserver.service.chatting;
 import com.wu.chatserver.domain.ChatRoom;
 import com.wu.chatserver.domain.User;
 import com.wu.chatserver.service.ChatRoomService;
+import com.wu.chatserver.service.ChatRoomServiceImpl;
 import com.wu.chatserver.service.MessageService;
 import com.wu.chatserver.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -10,8 +11,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.platform.commons.support.HierarchyTraversalMode;
+import org.junit.platform.commons.support.ReflectionSupport;
 import org.mockito.Mockito;
 
+import javax.enterprise.event.Event;
+import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
@@ -41,7 +46,16 @@ class WsChatRoomRealmTest {
         realm = new WsChatRoomRealm(connectionPool, userService, chatRoomService, messageService);
         realm.init(properties);
         executorService = Executors.newCachedThreadPool();
-
+        List<Field> triggers = ReflectionSupport
+                .findFields(WsChatRoomRealm.class, f -> f.getType().equals(Event.class), HierarchyTraversalMode.TOP_DOWN);
+        triggers.forEach(t -> {
+            try {
+                t.setAccessible(true);
+                t.set(realm, Mockito.mock(Event.class));
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     @Test
@@ -86,6 +100,7 @@ class WsChatRoomRealmTest {
                 api.connect(() -> userName1);
                 log.info("User {} has connected", userName1);
                 phaser.arriveAndAwaitAdvance();
+                log.info("User {} sending message", userName1);
                 api.sendMessage(new Message(chatRoomDomain2.getId(), "Test message from " + userName1));
                 Thread.sleep(10);
                 phaser.arriveAndAwaitAdvance();
@@ -107,6 +122,7 @@ class WsChatRoomRealmTest {
                 api.connect(() -> userName2);
                 log.info("User {} has connected", userName2);
                 phaser.arriveAndAwaitAdvance();
+                log.info("User {} is ready to receive messages", userName2);
                 while(true){
                     Message message = api.pollMessage();
                     System.out.println("Received: " + message);
@@ -119,8 +135,8 @@ class WsChatRoomRealmTest {
 
                 }
             } catch (Exception e) {
-                fail("Test was poorly built");
                 e.printStackTrace();
+                fail("Test was poorly built");
             }
 
         };
@@ -131,13 +147,13 @@ class WsChatRoomRealmTest {
         try{
             log.info("Connection phase");
             phaser.arrive();
-            phaser.awaitAdvanceInterruptibly(0, 1000, TimeUnit.MILLISECONDS);
+            phaser.awaitAdvanceInterruptibly(0, 100000, TimeUnit.MILLISECONDS);
             log.info("Message phase");
             phaser.arrive();
-            phaser.awaitAdvanceInterruptibly(1, 1000, TimeUnit.MILLISECONDS);
+            phaser.awaitAdvanceInterruptibly(1, 1000000, TimeUnit.MILLISECONDS);
             log.info("Disconnect phase");
             phaser.arrive();
-            phaser.awaitAdvanceInterruptibly(2, 1000, TimeUnit.MILLISECONDS);
+            phaser.awaitAdvanceInterruptibly(2, 1000000, TimeUnit.MILLISECONDS);
         }
         catch (InterruptedException | TimeoutException e){
             fail("Timeout reached");
