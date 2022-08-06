@@ -19,40 +19,35 @@
 package com.wu.chatserver.websocket;
 
 import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.DatabindException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wu.chatserver.exception.ChatException;
-import com.wu.chatserver.service.ChatRoomService;
+import com.wu.chatserver.jwtauth.JwtManager;
 import com.wu.chatserver.service.chatting.ChatClientAPI;
-import com.wu.chatserver.service.chatting.ChatRoom;
 import com.wu.chatserver.service.chatting.ChatRoomRealm;
 import com.wu.chatserver.service.chatting.Message;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
 import lombok.extern.slf4j.Slf4j;
-import org.jboss.weld.context.activator.ActivateRequestContext;
 
-import javax.enterprise.event.Event;
 import javax.inject.Inject;
 import javax.websocket.*;
 import javax.websocket.server.ServerEndpoint;
 import java.io.IOException;
-import java.security.Principal;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 @ServerEndpoint("/wssocket/chat")
 @Slf4j
-public class ChatSocket
-{
+public class ChatSocket {
     private Session session;
     @Inject
     private ChatRoomRealm chatRoomRealm;
     @Inject
     private ObjectMapper mapper;
+
+    @Inject
+    private JwtManager jwtManager;
     private Thread pollingThread;
     private ChatClientAPI chatClientAPI;
 
@@ -63,25 +58,31 @@ public class ChatSocket
     @OnOpen
     public void onOpen(Session session) throws IOException {
         this.session = session;
-        log.info("onOpen() session:" + session);
-        if(this.session.getUserPrincipal() == null){
+        log.info("onOpen() session");
+        Map<String, List<String>> parameterMap = session.getRequestParameterMap();
+        if (parameterMap.get("token") == null || parameterMap.get("token").isEmpty()) {
             this.session.close(new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "Unauthenticated."));
         }
-        log.info("Username is {}", this.session.getUserPrincipal().getName());
+        String token = parameterMap.get("token").get(0);
+        Jws<Claims> claimsJws;
+        try {
+            claimsJws = jwtManager.parse(token);
+        } catch (Exception e) {
+            this.session.close(new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "Malformed token."));
+            return;
+        }
+        log.info("Username is {}", claimsJws.getBody().get("userName", String.class));
         chatClientAPI = new ChatClientAPI(chatRoomRealm);
-        try{
-            chatClientAPI.connect(() -> this.session.getUserPrincipal().getName());
+        try {
+            chatClientAPI.connect(() -> claimsJws.getBody().get("userName", String.class));
             pollingThread = new Thread(() -> {
                 log.info("Client's polling thread started");
-                while (!Thread.interrupted())
-                {
-                    try
-                    {
+                while (!Thread.interrupted()) {
+                    try {
                         Message message = chatClientAPI.pollMessage();
+                        log.info("MMMM {}", message);
                         this.session.getBasicRemote().sendText(mapper.writeValueAsString(message));
-                    }
-                    catch (InterruptedException | IOException e)
-                    {
+                    } catch (InterruptedException | IOException e) {
                         log.info("Client's polling thread must be terminated because of", e);
                         try {
                             this.session.close(new CloseReason(CloseReason.CloseCodes.UNEXPECTED_CONDITION, "Closing on error"));
@@ -93,8 +94,7 @@ public class ChatSocket
                 log.info("Client's polling thread is over");
             });
             pollingThread.start();
-        }
-        catch (ChatException e){
+        } catch (ChatException e) {
             this.session.close(new CloseReason(CloseReason.CloseCodes.TRY_AGAIN_LATER, e.getMessage()));
         }
     }
@@ -102,22 +102,18 @@ public class ChatSocket
     @OnMessage
     public void onMessage(String msg) throws IOException {
         log.info("Message received: " + msg);
-        try{
+        try {
             Message message = mapper.readValue(msg, Message.class);
             chatClientAPI.sendMessage(message);
-        }
-        catch (JsonParseException e){
+        } catch (JsonParseException e) {
             log.warn("Wrong message format");
             this.session.getBasicRemote().sendText("Wrong message format");
-        }
-        catch (ChatException exception){
+        } catch (ChatException exception) {
             this.session.getBasicRemote().sendText("Error: " + exception.getMessage());
-        }
-        catch (InterruptedException | TimeoutException e){
+        } catch (InterruptedException | TimeoutException e) {
             log.warn("Unable to send message");
             this.session.getBasicRemote().sendText("Unable to send message");
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             log.error("Error occurred", e);
             this.session.getBasicRemote().sendText("Error occurred");
         }
@@ -139,7 +135,7 @@ public class ChatSocket
 
     @OnError
     public void onError(Throwable t) throws IOException {
-        log.info("onError()",  t);
+        log.info("onError()", t);
         chatClientAPI.disconnect();
         this.session.close(new CloseReason(CloseReason.CloseCodes.UNEXPECTED_CONDITION, "Closing on error"));
     }

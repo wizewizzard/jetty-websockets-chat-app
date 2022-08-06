@@ -80,6 +80,7 @@ public class ChatServer {
 
         JavaxWebSocketServletContainerInitializer.configure(context, (servletContext, wsContainer) ->
         {
+            wsContainer.setDefaultMaxSessionIdleTimeout(60 * 60 * 1000); // 1h
             wsContainer.setDefaultMaxTextMessageBufferSize(65535);
             wsContainer.addEndpoint(ChatSocket.class);
         });
@@ -105,10 +106,6 @@ public class ChatServer {
         chatApi.setConstraint(constraint);
         chatApi.setPathSpec("/api/chat/*");
 
-        ConstraintMapping wsChatting = new ConstraintMapping();
-        wsChatting.setConstraint(constraint);
-        wsChatting.setPathSpec("/wssocket/chat");
-
         ConstraintMapping authCm = new ConstraintMapping();
         authCm.setPathSpec("/api/auth/*");
         authCm.setConstraint(noConstraint);
@@ -116,7 +113,7 @@ public class ChatServer {
         Objects.requireNonNull(properties.getProperty("jwt.issuer"));
         Objects.requireNonNull(properties.getProperty("jwt.secret"));
 
-        security.setConstraintMappings(new ConstraintMapping[]{authCm, chatApi, wsChatting});
+        security.setConstraintMappings(new ConstraintMapping[]{authCm, chatApi});
         JwtAuthenticator jwtAuthenticator = new JwtAuthenticator();
         jwtAuthenticator.setJwtManager(new JwtManager(properties.getProperty("jwt.issuer"),
                 Base64.getEncoder().encode(properties.getProperty("jwt.secret")
