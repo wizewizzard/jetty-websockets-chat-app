@@ -26,4 +26,16 @@ public enum ChatRoomDTO {
             private String chatName;
         }
     }
+
+    public enum Response{
+        ;
+        @Getter
+        @Setter
+        @NoArgsConstructor
+        @AllArgsConstructor
+        public static class ChatRoomInfo implements Id, Name{
+            private long id;
+            private String chatName;
+        }
+    }
 }
