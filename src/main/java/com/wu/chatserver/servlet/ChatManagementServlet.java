@@ -30,15 +30,17 @@ public class ChatManagementServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         ChatRoomDTO.Request.Create create = mapper.readValue(req.getReader(), ChatRoomDTO.Request.Create.class);
-        if(create.getChatName() == null || create.getChatName().isBlank())
+        if(create.getChatName() == null || create.getChatName().isBlank()){
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Name must not be blank");
-
-        if(!req.isUserInRole("user") || !(req.getUserPrincipal() instanceof JwtPrincipal))
+            return;
+        }
+        if(!req.isUserInRole("user") || !(req.getUserPrincipal() instanceof JwtPrincipal)){
             resp.sendError(HttpServletResponse.SC_FORBIDDEN, "You have no rights to do that");
-
+            return;
+        }
         chatRoomService.createChatRoom(create, ((JwtPrincipal) req.getUserPrincipal()).getUserId());
+        resp.setStatus(HttpServletResponse.SC_CREATED);
     }
-
     /*@Override
     protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String chatIdStr = req.getParameter("chatId");
