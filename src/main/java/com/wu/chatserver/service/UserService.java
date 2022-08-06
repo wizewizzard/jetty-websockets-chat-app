@@ -73,12 +73,13 @@ public class UserService {
         }
     }
 
-    public String loginUser(UserDTO.Request.Login loginDto) {
+    public UserDTO.Response.UserLogin loginUser(UserDTO.Request.Login loginDto) {
         User user = userDao.findUserByUserName(loginDto.getUserName())
                 .orElseThrow(() -> new AuthenticationException("Wrong credentials"));
         if (!passwordEncryptor.checkPassword(loginDto.getPassword(), user.getPassword()))
             throw new AuthenticationException("Wrong credentials");
-        return jwtManager.generate(Map.of("userId", user.getId(), "userName", user.getUserName()));
+        String token = jwtManager.generate(Map.of("userId", user.getId(), "userName", user.getUserName()));
+        return new UserDTO.Response.UserLogin(user.getId(), user.getUserName(), token);
     }
 
     public UserDTO.Response.UserInfo verifyToken(TokenDTO tokenDTO) {

@@ -43,7 +43,8 @@ class LoginServletTest {
 
         Mockito.when(response.getWriter()).thenReturn(printWriter);
         Mockito.when(request.getReader()).thenReturn(new BufferedReader(new StringReader(json)));
-        Mockito.when(userService.loginUser(Mockito.any(UserDTO.Request.Login.class))).thenReturn("tokenBLAH");
+        UserDTO.Response.UserLogin loginRespMock = new UserDTO.Response.UserLogin(1L, "userName", "tokenBLAH");
+        Mockito.when(userService.loginUser(Mockito.any(UserDTO.Request.Login.class))).thenReturn(loginRespMock);
 
         loginServlet.doPost(request, response);
 

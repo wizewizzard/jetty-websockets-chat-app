@@ -43,9 +43,9 @@ public class LoginServlet extends HttpServlet {
                 resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "userName and password are mandatory");
                 return;
             }
-            String token = userService.loginUser(login);
+            UserDTO.Response.UserLogin userLoginResp = userService.loginUser(login);
             resp.setStatus(HttpServletResponse.SC_OK);
-            resp.getWriter().println(mapper.writeValueAsString(new TokenDTO(token)));
+            resp.getWriter().println(mapper.writeValueAsString(userLoginResp));
         }
         catch (DatabindException exception){
             log.debug("Wrong data format");

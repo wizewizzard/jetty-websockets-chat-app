@@ -16,6 +16,9 @@ public enum UserDTO {
         LocalDateTime getEndedAt();
         UsersChatSession.OnlineStatus getOnlineStatus();
     }
+    private interface Token{
+        String getToken();
+    }
 
     public enum Request{
         ;
@@ -56,6 +59,15 @@ public enum UserDTO {
         public static class UserInfo implements Id, Name{
             private Long id;
             private String userName;
+        }
+
+        @NoArgsConstructor
+        @AllArgsConstructor
+        @Data
+        public static class UserLogin implements Id, Name, Token{
+            private Long id;
+            private String userName;
+            private String token;
         }
     }
 }
