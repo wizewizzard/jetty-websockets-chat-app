@@ -9,5 +9,5 @@ public interface UserDao extends GenericDao<Long, User> {
 
     boolean uniqueUserNameAndEmail(String userName, String email);
 
-    Optional<User> findUserWithChatRoomsByUserName(String userName);
+    Optional<User> findUserWithChatRoomsByIdOrUserName(Long userId, String userName);
 }

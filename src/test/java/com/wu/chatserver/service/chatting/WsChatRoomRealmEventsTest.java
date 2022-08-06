@@ -77,7 +77,7 @@ class WsChatRoomRealmEventsTest {
         when(chatRoomDomain.getMembers()).thenReturn(Set.of(user));
 
         Mockito.when(userService.getUserByUserName(userName)).thenReturn(Optional.of(user));
-        Mockito.when(chatRoomService.findChatRoomsForUser(user.getUserName())).thenReturn(List.of());
+        Mockito.when(chatRoomService.findChatRoomsForUser(null, user.getUserName())).thenReturn(List.of());
 
         ChatRoomCreated chatRoomCreated  = mock(ChatRoomCreated.class);
         when(chatRoomCreated.getChatRoom()).thenReturn(chatRoomDomain);
@@ -152,7 +152,7 @@ class WsChatRoomRealmEventsTest {
         when(chatRoomDomain.getMembers()).thenReturn(Set.of());
 
         Mockito.when(userService.getUserByUserName(userName)).thenReturn(Optional.of(user));
-        Mockito.when(chatRoomService.findChatRoomsForUser(user.getUserName())).thenReturn(List.of());
+        Mockito.when(chatRoomService.findChatRoomsForUser(null, user.getUserName())).thenReturn(List.of());
 
         UserJoinedChatRoom userJoinedChatRoom  = mock(UserJoinedChatRoom.class);
         when(userJoinedChatRoom.getChatRoom()).thenReturn(chatRoomDomain);
@@ -229,7 +229,7 @@ class WsChatRoomRealmEventsTest {
         when(chatRoomDomain.getMembers()).thenReturn(Set.of());
 
         Mockito.when(userService.getUserByUserName(userName)).thenReturn(Optional.of(user));
-        Mockito.when(chatRoomService.findChatRoomsForUser(user.getUserName())).thenReturn(List.of());
+        Mockito.when(chatRoomService.findChatRoomsForUser(null, user.getUserName())).thenReturn(List.of());
 
         UserJoinedChatRoom userJoinedChatRoom  = mock(UserJoinedChatRoom.class);
         when(userJoinedChatRoom.getChatRoom()).thenReturn(chatRoomDomain);
@@ -265,7 +265,7 @@ class WsChatRoomRealmEventsTest {
         when(chatRoomDomain.getMembers()).thenReturn(Set.of());
 
         Mockito.when(userService.getUserByUserName(userName)).thenReturn(Optional.of(user));
-        Mockito.when(chatRoomService.findChatRoomsForUser(user.getUserName())).thenReturn(List.of());
+        Mockito.when(chatRoomService.findChatRoomsForUser(null, user.getUserName())).thenReturn(List.of());
 
         UserJoinedChatRoom userJoinedChatRoom  = mock(UserJoinedChatRoom.class);
         when(userJoinedChatRoom.getChatRoom()).thenReturn(chatRoomDomain);

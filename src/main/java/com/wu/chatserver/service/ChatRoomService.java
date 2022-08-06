@@ -19,5 +19,5 @@ public interface ChatRoomService {
 
     public Optional<ChatRoom> findChatRoomWithMembersById(Long chatRoomId);
 
-    public List<ChatRoom> findChatRoomsForUser(String userName);
+    public List<ChatRoom> findChatRoomsForUser(Long usedId, String userName);
 }

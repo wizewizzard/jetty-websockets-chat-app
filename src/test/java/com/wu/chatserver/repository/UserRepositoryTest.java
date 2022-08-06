@@ -115,7 +115,7 @@ class UserRepositoryTest {
         assertThat(user.getChatRooms()).hasSizeGreaterThan(0);
         List<ChatRoom> usersChatRooms = user.getChatRooms();
 
-        Optional<User> optionalUser = userRepositoryUT.findUserWithChatRoomsByUserName(user.getUserName());
+        Optional<User> optionalUser = userRepositoryUT.findUserWithChatRoomsByIdOrUserName(null, user.getUserName());
 
         assertThat(optionalUser)
                 .isPresent()
@@ -136,9 +136,9 @@ class UserRepositoryTest {
         assertThat(julia.getChatRooms()).hasSizeGreaterThan(0);
         assertThat(denny.getChatRooms()).hasSize(0);
 
-        Optional<User> juliaOptional = userRepositoryUT.findUserWithChatRoomsByUserName(julia.getUserName());
-        Optional<User> harryOptional = userRepositoryUT.findUserWithChatRoomsByUserName(harry.getUserName());
-        Optional<User> dennyOptional = userRepositoryUT.findUserWithChatRoomsByUserName(denny.getUserName());
+        Optional<User> juliaOptional = userRepositoryUT.findUserWithChatRoomsByIdOrUserName(null, julia.getUserName());
+        Optional<User> harryOptional = userRepositoryUT.findUserWithChatRoomsByIdOrUserName(null, harry.getUserName());
+        Optional<User> dennyOptional = userRepositoryUT.findUserWithChatRoomsByIdOrUserName(null, denny.getUserName());
 
         assertThat(juliaOptional).isPresent()
                 .get()

@@ -84,8 +84,8 @@ class WsChatRoomRealmTest {
         Mockito.when(user2.getChatRooms()).thenReturn(List.of(chatRoomDomain2));
         Mockito.when(userService.getUserByUserName(user2.getUserName())).thenReturn(Optional.of(user2));
 
-        Mockito.when(chatRoomService.findChatRoomsForUser(user1.getUserName())).thenReturn(List.of(chatRoomDomain1, chatRoomDomain2));
-        Mockito.when(chatRoomService.findChatRoomsForUser(user2.getUserName())).thenReturn(List.of(chatRoomDomain2));
+        Mockito.when(chatRoomService.findChatRoomsForUser(null, user1.getUserName())).thenReturn(List.of(chatRoomDomain1, chatRoomDomain2));
+        Mockito.when(chatRoomService.findChatRoomsForUser(null, user2.getUserName())).thenReturn(List.of(chatRoomDomain2));
         Mockito.when(chatRoomService.findChatRoomWithMembersById(chatRoomDomain1.getId())).thenReturn(Optional.of(chatRoomDomain1));
         Mockito.when(chatRoomService.findChatRoomWithMembersById(chatRoomDomain2.getId())).thenReturn(Optional.of(chatRoomDomain2));
         Mockito.when(chatRoomDomain1.getMembers()).thenReturn(Set.of(user1));
@@ -184,7 +184,7 @@ class WsChatRoomRealmTest {
             Mockito.when(user.getChatRooms()).thenReturn(List.of(chatRoomDomain));
             Mockito.when(userService.getUserByUserName(userName)).thenReturn(Optional.of(user));
             Mockito.when(chatRoomService.findChatRoomWithMembersById(chatRoomDomain.getId())).thenReturn(Optional.of(chatRoomDomain));
-            Mockito.when(chatRoomService.findChatRoomsForUser(user.getUserName())).thenReturn(List.of(chatRoomDomain));
+            Mockito.when(chatRoomService.findChatRoomsForUser(null, user.getUserName())).thenReturn(List.of(chatRoomDomain));
 
             mockedUsers.add(user);
             clients.add(() -> {
@@ -275,7 +275,7 @@ class WsChatRoomRealmTest {
         Mockito.when(user.getId()).thenReturn(ThreadLocalRandom.current().nextLong());
         Mockito.when(userService.getUserByUserName(userName)).thenReturn(Optional.of(user));
         Mockito.when(chatRoomService.findChatRoomWithMembersById(chatRoomDomain.getId())).thenReturn(Optional.of(chatRoomDomain));
-        Mockito.when(chatRoomService.findChatRoomsForUser(user.getUserName())).thenReturn(List.of(chatRoomDomain));
+        Mockito.when(chatRoomService.findChatRoomsForUser(null, user.getUserName())).thenReturn(List.of(chatRoomDomain));
         Mockito.when(user.getChatRooms()).thenReturn(List.of(chatRoomDomain));
 
         Runnable client = () -> {

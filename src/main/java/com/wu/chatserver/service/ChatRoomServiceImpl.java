@@ -145,8 +145,8 @@ public class ChatRoomServiceImpl implements ChatRoomService {
     }
 
     @Override
-    public List<ChatRoom> findChatRoomsForUser(String userName) {
-        User user = userRepository.findUserWithChatRoomsByUserName(userName)
+    public List<ChatRoom> findChatRoomsForUser(Long userId, String userName) {
+        User user = userRepository.findUserWithChatRoomsByIdOrUserName(userId, userName)
                 .orElseThrow(() -> new RequestException("User does not exist"));
         return user.getChatRooms();
     }

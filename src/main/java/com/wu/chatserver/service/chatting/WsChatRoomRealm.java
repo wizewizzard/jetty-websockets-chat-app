@@ -70,7 +70,7 @@ public class WsChatRoomRealm implements ChatRoomRealm {
         roomConnection.setMembership(roomMembership);
 
         List<com.wu.chatserver.domain.ChatRoom> chatRoomsDomain =
-                chatRoomService.findChatRoomsForUser(roomConnection.getUser().getUserName());
+                chatRoomService.findChatRoomsForUser(null, roomConnection.getUser().getUserName());
 
         for (com.wu.chatserver.domain.ChatRoom chatRoomDomain : chatRoomsDomain) {
             ChatRoom chatRoom;
