@@ -20,4 +20,6 @@ public interface ChatRoomService {
     public Optional<ChatRoom> findChatRoomWithMembersById(Long chatRoomId);
 
     public List<ChatRoom> findChatRoomsForUser(Long usedId, String userName);
+
+    public List<ChatRoomDTO.Response.ChatRoomInfo> findChatRoomsByName(String name);
 }

@@ -9,6 +9,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.persistence.NoResultException;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.*;
+import java.util.List;
 import java.util.Optional;
 
 @ApplicationScoped
@@ -48,5 +49,13 @@ public class ChatRoomRepository extends GenericDaoSkeletal<Long, ChatRoom> imple
         } catch (NoResultException noResultException) {
             return Optional.empty();
         }
+    }
+
+    @Override
+    public List<ChatRoom> findChatRoomsWithNameLike(String chatRoomName) {
+        String jpqlQuery = "FROM ChatRoom cr JOIN FETCH cr.createdBy where lower(cr.name) like lower(concat('%', :chatRoomName,'%'))";
+        TypedQuery<ChatRoom> query = em.createQuery(jpqlQuery, ChatRoom.class);
+        query.setParameter("chatRoomName", chatRoomName);
+        return query.getResultList();
     }
 }

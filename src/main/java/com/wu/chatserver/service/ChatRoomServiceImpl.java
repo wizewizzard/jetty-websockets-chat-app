@@ -23,6 +23,7 @@ import javax.persistence.TypedQuery;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 @NoArgsConstructor
@@ -151,4 +152,11 @@ public class ChatRoomServiceImpl implements ChatRoomService {
         return user.getChatRooms();
     }
 
+    @Override
+    public List<ChatRoomDTO.Response.ChatRoomInfo> findChatRoomsByName(String name) {
+        List<ChatRoom> roomsWithNameLike = chatRoomRepository.findChatRoomsWithNameLike(name);
+        return roomsWithNameLike
+                .stream().map(cr -> new ChatRoomDTO.Response.ChatRoomInfo(cr.getId(), cr.getName()))
+                .collect(Collectors.toList());
+    }
 }

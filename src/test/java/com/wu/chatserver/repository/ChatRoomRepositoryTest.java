@@ -100,4 +100,17 @@ class ChatRoomRepositoryTest {
                     assertThat(chatRoomFetched.getMembers()).containsAll(members);
                 });
     }
+
+    @Test
+    void shouldFindChatRooms() {
+
+
+        List<ChatRoom> roomsWithNameLike1 = chatRoomRepositoryUT.findChatRoomsWithNameLike("chat");
+        List<ChatRoom> roomsWithNameLike2 = chatRoomRepositoryUT.findChatRoomsWithNameLike("BLAH");
+        List<ChatRoom> roomsWithNameLike3 = chatRoomRepositoryUT.findChatRoomsWithNameLike("Julia's");
+
+        assertThat(roomsWithNameLike1).hasSize(testData.getChatRooms().size());
+        assertThat(roomsWithNameLike2).hasSize(0);
+        assertThat(roomsWithNameLike3).hasSize(1);
+    }
 }
