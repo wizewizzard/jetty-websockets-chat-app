@@ -1,6 +1,7 @@
 package com.wu.chatserver.servlet;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wu.chatserver.domain.ChatRoom;
 import com.wu.chatserver.dto.ChatRoomDTO;
 import com.wu.chatserver.exception.NotEnoughRightsException;
 import com.wu.chatserver.jwtauth.JwtPrincipal;
@@ -12,6 +13,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.PrintWriter;
 
 public class ChatManagementServlet extends HttpServlet {
 
@@ -38,8 +40,11 @@ public class ChatManagementServlet extends HttpServlet {
             resp.sendError(HttpServletResponse.SC_FORBIDDEN, "You have no rights to do that");
             return;
         }
-        chatRoomService.createChatRoom(create, ((JwtPrincipal) req.getUserPrincipal()).getUserId());
+        ChatRoom chatRoom = chatRoomService.createChatRoom(create, ((JwtPrincipal) req.getUserPrincipal()).getUserId());
+        ChatRoomDTO.Response.ChatRoomInfo chatRoomInfo = new ChatRoomDTO.Response.ChatRoomInfo(chatRoom.getId(), chatRoom.getName());
         resp.setStatus(HttpServletResponse.SC_CREATED);
+        PrintWriter writer = resp.getWriter();
+        writer.write(mapper.writeValueAsString(chatRoomInfo));
     }
     /*@Override
     protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
