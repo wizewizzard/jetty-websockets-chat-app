@@ -78,6 +78,7 @@ public class ChatServer {
         context.addServlet(new ServletHolder(ChatManagementServlet.class), "/api/chat");
         context.addServlet(new ServletHolder(ChatMembershipServlet.class), "/api/chat/membership/*");
         context.addServlet(new ServletHolder(ChatSearchServlet.class), "/api/chat/search/*");
+        context.addServlet(new ServletHolder(MessageHistoryServlet.class), "/api/chat/history/*");
 
         JavaxWebSocketServletContainerInitializer.configure(context, (servletContext, wsContainer) ->
         {
