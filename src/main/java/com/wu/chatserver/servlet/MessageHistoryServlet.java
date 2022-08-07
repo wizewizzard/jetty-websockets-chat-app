@@ -13,8 +13,10 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.ParseException;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 
@@ -53,7 +55,8 @@ public class MessageHistoryServlet extends HttpServlet {
             LocalDateTime untilDT = LocalDateTime.now();
             int depth = 20;
             if(dateStr != null && !dateStr.isEmpty()){
-                untilDT = LocalDateTime.parse(dateStr);
+                long tstmp = Long.parseLong(dateStr);
+                untilDT = LocalDateTime.ofInstant(Instant.ofEpochSecond(tstmp), ZoneId.systemDefault());
             }
             if(depthStr != null && !depthStr.isEmpty()){
                 depth = Integer.parseInt(depthStr);
