@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 public class Message {
     private Long chatId;
     private Long userId;
-    private String userName;
+    private String createdBy;
     private String body;
     private LocalDateTime publishedAt;
 

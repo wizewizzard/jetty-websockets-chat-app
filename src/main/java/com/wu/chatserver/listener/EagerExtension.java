@@ -1,6 +1,7 @@
 package com.wu.chatserver.listener;
 
 import com.wu.chatserver.service.chatting.ChatRoomRealm;
+import com.wu.chatserver.util.TestDataFiller;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jetty.security.ConstraintSecurityHandler;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -22,6 +23,8 @@ public class EagerExtension implements Extension {
         entityManagerFactory.toString();
         ChatRoomRealm chatRoomRealm = CDI.current().select(ChatRoomRealm.class).get();
         chatRoomRealm.init(props);
+        TestDataFiller testDataFiller = CDI.current().select(TestDataFiller.class).get();
+        testDataFiller.fillData();
     }
 
 }

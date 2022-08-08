@@ -11,7 +11,7 @@ public enum MessageDTO {
     private interface Body{ String getBody();}
     private interface PublishedAt{LocalDateTime getPublishedAt();}
     private interface CreatedBy{ String getCreatedBy(); }
-    private interface ChatRoom{ String getChatRoom(); }
+    private interface ChatId{ Long getChatId(); }
 
     public enum Request{
         ;
@@ -22,10 +22,11 @@ public enum MessageDTO {
         @NoArgsConstructor
         @AllArgsConstructor
         @Data
-        public static class MessageWithAuthor implements Body, PublishedAt, CreatedBy{
+        public static class MessageWithAuthor implements Body, PublishedAt, CreatedBy, ChatId{
             private String body;
             private LocalDateTime publishedAt;
             private String createdBy;
+            private Long chatId;
         }
     }
 }

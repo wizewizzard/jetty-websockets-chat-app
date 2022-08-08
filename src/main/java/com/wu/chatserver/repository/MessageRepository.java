@@ -26,7 +26,8 @@ public class MessageRepository extends GenericDaoSkeletal<Long, Message> impleme
                 MessageDTO.Response.MessageWithAuthor.class,
                 messagesJoin.get(Message_.body),
                 messagesJoin.get(Message_.publishedAt),
-                userJoin.get(User_.userName)
+                userJoin.get(User_.userName),
+                root.get(ChatRoom_.id)
                 )));
 
         ParameterExpression<Long> chatId = cb.parameter(Long.class);

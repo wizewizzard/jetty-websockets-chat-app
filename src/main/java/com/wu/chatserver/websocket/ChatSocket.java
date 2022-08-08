@@ -20,6 +20,7 @@ package com.wu.chatserver.websocket;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wu.chatserver.dto.MessageDTO;
 import com.wu.chatserver.exception.ChatException;
 import com.wu.chatserver.jwtauth.JwtManager;
 import com.wu.chatserver.service.chatting.ChatClientAPI;
@@ -81,7 +82,12 @@ public class ChatSocket {
                     try {
                         Message message = chatClientAPI.pollMessage();
                         log.info("MMMM {}", message);
-                        this.session.getBasicRemote().sendText(mapper.writeValueAsString(message));
+                        MessageDTO.Response.MessageWithAuthor messageWithAuthor =
+                                new MessageDTO.Response.MessageWithAuthor(message.getBody(),
+                                        message.getPublishedAt(),
+                                        message.getCreatedBy(),
+                                        message.getChatId());
+                        this.session.getBasicRemote().sendText(mapper.writeValueAsString(messageWithAuthor));
                     } catch (InterruptedException | IOException e) {
                         log.info("Client's polling thread must be terminated because of", e);
                         try {
