@@ -31,6 +31,10 @@ public class ChatSearchServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String name = req.getParameter("name");
+        if(name == null || name.isEmpty()){
+            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Name must not be blank");
+            return;
+        }
         List<ChatRoomDTO.Response.ChatRoomInfo> chatRoomsByName = chatRoomService.findChatRoomsByName(name);
         PrintWriter writer = resp.getWriter();
         writer.write(mapper.writeValueAsString(chatRoomsByName));

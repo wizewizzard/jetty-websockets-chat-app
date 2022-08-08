@@ -53,7 +53,7 @@ public class LoginServlet extends HttpServlet {
         }
         catch (AuthenticationException exception){
             log.debug("Credentials are wrong");
-            resp.sendError(HttpServletResponse.SC_UNAUTHORIZED, exception.getMessage());
+            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, exception.getMessage());
         }
     }
 

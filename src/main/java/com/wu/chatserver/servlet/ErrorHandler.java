@@ -43,19 +43,6 @@ public class ErrorHandler  extends ErrorPageErrorHandler {
             //handleErrorPage(request, writer, code, message);
         }
     }
-
-    @Override
-    protected void writeErrorPage(HttpServletRequest request, Writer writer, int code, String message, boolean showStacks)
-            throws IOException
-    {
-        try {
-            writer.write(mapper.writeValueAsString(new Errors(getMessage(code))));
-        }
-        catch (Exception e) {
-            // Log if needed
-        }
-    }
-
     private String getMessage(int code) {
         switch (code) {
             case 404 : return ERROR_404_MESSAGE;

@@ -81,7 +81,6 @@ public class ChatSocket {
                 while (!Thread.interrupted()) {
                     try {
                         Message message = chatClientAPI.pollMessage();
-                        log.info("MMMM {}", message);
                         MessageDTO.Response.MessageWithAuthor messageWithAuthor =
                                 new MessageDTO.Response.MessageWithAuthor(message.getBody(),
                                         message.getPublishedAt(),
