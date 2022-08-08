@@ -248,9 +248,9 @@ class WsChatRoomRealmTest {
             assertThat(messagesReceivedByEachClient).allSatisfy(messages -> {
                 userNames.forEach(userName -> {
                     assertThat(messages)
-                            .anyMatch(m -> m.getUserName().equals(userName) && m.getBody().equals("Hello!"));
+                            .anyMatch(m -> m.getCreatedBy().equals(userName) && m.getBody().equals("Hello!"));
                     assertThat(messages)
-                            .anyMatch(m -> m.getUserName().equals(userName) && m.getBody().equals("My name is " + userName));
+                            .anyMatch(m -> m.getCreatedBy().equals(userName) && m.getBody().equals("My name is " + userName));
                 });
 
             });
