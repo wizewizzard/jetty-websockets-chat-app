@@ -53,7 +53,7 @@ public class ChatRoomRepository extends GenericDaoSkeletal<Long, ChatRoom> imple
 
     @Override
     public List<ChatRoom> findChatRoomsWithNameLike(String chatRoomName) {
-        String jpqlQuery = "FROM ChatRoom cr JOIN FETCH cr.createdBy where lower(cr.name) like lower(concat('%', :chatRoomName,'%'))";
+        String jpqlQuery = "FROM ChatRoom cr LEFT JOIN FETCH cr.createdBy where lower(cr.name) like lower(concat('%', :chatRoomName,'%'))";
         TypedQuery<ChatRoom> query = em.createQuery(jpqlQuery, ChatRoom.class);
         query.setParameter("chatRoomName", chatRoomName);
         return query.getResultList();
