@@ -4,6 +4,7 @@ import ChatService from '../../../service/ChatService';
 import Loader from '../../static/Loader';
 import ChatInput from './ChatInput';
 import styles from './ChatWindow.module.css'
+import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { AuthContext } from '../../../context/AuthContext';
 import ConnectionBox from './ConnectionBox';
 import { MessagingContext } from '../../../context/MessageStorageContext';
@@ -39,6 +40,14 @@ export default function ChatWindow(){
     const {getMessages, addMessage} = useContext(MessagingContext);
     const [canBeQueriedMore, setCanBeQueriedMore] = useState(true);
     const [depth, setDepth] = useState(20)
+
+    const queryParams = {
+        token: token
+      };
+    const [socketUrl, setSocketUrl] = useState('ws://localhost:8080/wssocket/chat');
+
+    //TODO: close connection when unmounts
+    const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl, {queryParams});
 
     useEffect(() => {
         setLoaded(false);
@@ -78,13 +87,23 @@ export default function ChatWindow(){
     },
     [messages])
 
-    }, [selectedRoom])
-    
+    useEffect(() => {
+        if(lastMessage != null){
+            const msg = JSON.parse(lastMessage.data);
+            addMessage(msg);
+            if(selectedRoom != null && selectedRoom.id === msg.chatId) 
+                setMessages({action: 'insertFirst', messages: [msg]})
+        }
+    }, [lastMessage])
     return (
         <>
-        {!loaded ? 
-        <Loader visible={!loaded} message = {'Loading chat'}/>
-        :
+        {
+            (() => {
+                switch (readyState){
+                    case ReadyState.CONNECTING: 
+                        return <Loader visible={!loaded} message = {'Connecting'}/>
+                    case ReadyState.OPEN: 
+                        return (
                             selectedRoom ? 
                             <>
                                 <section className={styles.chatbox}>
@@ -119,6 +138,15 @@ export default function ChatWindow(){
                             <>
                                 <ConnectionBox header={'Select a chat room'} message={'Select any chat to start communication'}/>
                             </>
+                        );
+                    case ReadyState.CLOSING: 
+                        return <Loader visible={!loaded} message = {'Closing'} />;
+                    case ReadyState.CLOSED: 
+                        return (<ConnectionBox header={'Connection closed'} message={'May be something wrong with a server'}/>);
+                    case ReadyState.UNINSTANTIATED: 
+                        return (<ConnectionBox header={'Connection closed'} message={'May be something wrong with a server'}/>);
+                }
+            })()        
     }
     </>
     );
