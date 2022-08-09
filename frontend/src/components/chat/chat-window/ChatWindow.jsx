@@ -4,6 +4,7 @@ import ChatService from '../../../service/ChatService';
 import Loader from '../../static/Loader';
 import ChatInput from './ChatInput';
 import styles from './ChatWindow.module.css'
+import { AuthContext } from '../../../context/AuthContext';
 
 
 
@@ -11,6 +12,7 @@ export default function ChatWindow(){
     const [loaded, setLoaded] = useState(false);
     const [messages, setMessages] = useState([]);
     const {selectedRoom} = useContext(ChatRoomSelectionContext);
+    const {token, userName} = useContext(AuthContext);
 
     useEffect(() => {
         setLoaded(false);

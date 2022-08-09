@@ -22,7 +22,7 @@ function App() {
                   <Route path= "/error" element={<Error />} />
                   <Route path= "/signin" element={<SignIn />} />
                   <Route path= "/signup" element={<SignUp />} /> 
-              <Route path='/' element={<AppContainer />} />
+                  <Route path='/' element={<AppContainer />} />
             </Routes>
             </AuthContextProvider>
           </div>

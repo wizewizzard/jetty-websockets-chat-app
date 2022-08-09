@@ -4,6 +4,7 @@ import ChatInfo from './ChatInfo';
 import { ChatRoomContext } from '../../../../context/ChatRoomContext';
 import ChatService from '../../../../service/ChatService';
 import styles from './ChatList.module.css'
+import { AuthContext } from '../../../../context/AuthContext';
 
 export const chatStatus = { 
   Connected: 'Connected', 
@@ -14,6 +15,8 @@ export const chatStatus = {
 export default function ChatList() {
   const [loaded, setLoaded] = useState(false)
   const [chatRooms, setChatRooms] = useState([])
+  const {userId} = useContext(AuthContext);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     console.log('Rerendered')
