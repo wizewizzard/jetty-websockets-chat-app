@@ -3,7 +3,7 @@ import Loader from '../../../static/Loader';
 import ChatInfo from './ChatInfo';
 import { ChatRoomContext, chatStatus } from '../../../../context/ChatRoomContext';
 import ChatService from '../../../../service/ChatService';
-import styles from './ChatList.module.css'
+import styles from '../ChatManagement.module.css'
 import { AuthContext } from '../../../../context/AuthContext';
 
 export default function ChatList() {
@@ -15,14 +15,6 @@ export default function ChatList() {
     chatRooms: chatRoomList,
     synchChatRooms
   } = useContext(ChatRoomContext);
-
-  useEffect(() => {
-    console.log('Rerendered')
-  })
-
-  useEffect(() => {
-    console.log('Mounted')
-  }, []);
 
   useEffect(() => {
     setLoaded(false);
@@ -37,14 +29,25 @@ export default function ChatList() {
             });
         }
         else{
-          //TODO: error process
+          resp.json().then(data => {
+            setError({message: data.message});
+          }).
+          catch(err => {
+            setError({message: resp.statusText});
+          });
           setLoaded(true);
         }
     })
+    .catch(err => {
+          setError({message: 'Error when making request'});
+          setLoaded(true);
+    });
+    }, []);
+
     useEffect(() => {
       console.log('chatRoomList: ', chatRoomList)
       setChatRooms(chatRoomList);
-    }, [chatRoomList])
+    }, [chatRoomList]);
     
   
 
@@ -54,6 +57,8 @@ export default function ChatList() {
       {!loaded ? 
           <Loader visible={!loaded} message = {'Loading chat rooms'}/>
           :
+          error ? <div className='error-message'>{error.message}</div>
+          :
           <section className={styles["chat-list"]}>
             {chatRooms.map((c, i) => {
               return(
@@ -61,7 +66,6 @@ export default function ChatList() {
               )
             })}
           </section>
-        
         }
       </div>
     </>

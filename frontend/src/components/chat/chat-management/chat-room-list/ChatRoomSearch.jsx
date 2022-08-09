@@ -36,14 +36,17 @@ export default function ChatRoomSearch() {
         }
         else{
           resp.json().then(data => {
-            setLoaded(true);
-            setError(data.message);
-          })
+            setError({message: data.message});
+          }).
+          catch(err => {
+            setError({message: resp.statusText});
+          });
+          setLoaded(true);
         }
       })
       .catch(err => {
         setLoaded(true);
-        setError("Request was not successful");
+        setError({message:"Request was not successful"});
       })
   }
   return (
@@ -64,7 +67,7 @@ export default function ChatRoomSearch() {
           <Loader visible={!loaded} message = {'Loading chat rooms...'}/>
           :
           error !== null ? 
-          <div className={[styles['request-result'], styles['bad']].join(' ')}>{error}</div>
+          <div className={[styles['request-result'], styles['bad']].join(' ')}>{error.message}</div>
           :
           chatRooms && chatRooms.length > 0 ? 
           <>
