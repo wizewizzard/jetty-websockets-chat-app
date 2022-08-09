@@ -1,33 +1,38 @@
-import styles from './ChatList.module.css'
-
 import React, {useContext, useEffect, useState} from 'react'
 
-import { WsConnectionContext } from '../../../../context/WsConnectionContext'
 import { ChatRoomSelectionContext } from '../../../../context/ChatRoomSelectionContext'
-import { ChatManagementContext, chatRoomStatus } from '../../../../context/WsConnectionContext'
+import { ChatRoomContext, chatStatus } from '../../../../context/ChatRoomContext'
+
+import styles from '../ChatManagement.module.css'
 
 export default function ChatInfo({chatRoom}) {
     const [status, setStatus] = useState(null);
     const {selectedRoom, setSelectedRoom} = useContext(ChatRoomSelectionContext);
-    const {openConnection, closeConnection, getChatRoomStatus} = useContext(WsConnectionContext);
+    const {chatRooms,
+        connectChatRoom, 
+        leaveChatRoom} = useContext(ChatRoomContext);
 
-    useEffect(() => {    
-        setStatus(getChatRoomStatus(chatRoom));
-    }, [])
+    useEffect(() => {   
+        if(status === null || status == chatStatus.Unknown){
+            if(chatRooms.some(e => e.id === chatRoom.id))
+            setStatus(chatStatus.Connected);
+        else
+            setStatus(chatStatus.Disconnected);
+        }   
+    })
     
-
-
     const handleSelection = (event) => {
-        if(status === chatRoomStatus.Connected)
+        if(status === chatStatus.Connected)
             setSelectedRoom(chatRoom)
     };
 
     const handleConnect = (event) => {
         const prevStatus = status;
-        setStatus(chatRoomStatus.Connecting);
-        openConnection(chatRoom)
+        setStatus(chatStatus.Connecting);
+
+        connectChatRoom({id: chatRoom.id})
             .then(res => {
-                setStatus(chatRoomStatus.Connected);
+                setStatus(chatStatus.Connected);
             })
             .catch(err => {
                 console.log(err);
@@ -35,16 +40,16 @@ export default function ChatInfo({chatRoom}) {
             })
             
     };
-    const handleDisconnect = (event) => {
+
+    const handleLeave = (event) => {
         const prevStatus = status;
-        setStatus(chatRoomStatus.Disconnecting);
-        closeConnection(chatRoom)
+        setStatus(chatStatus.Leaving);
+        leaveChatRoom(chatRoom)
             .then(res => {
-                //setSelected(false);
                 if(selectedRoom && selectedRoom.id === chatRoom.id){
                     setSelectedRoom(null);
                 } 
-                setStatus(chatRoomStatus.Disconnected);
+                setStatus(chatStatus.Disconnected);
             })
             .catch(err => {
                 console.log(err);
@@ -52,33 +57,22 @@ export default function ChatInfo({chatRoom}) {
             });
     };
 
-    const handleLeave = (event) => {
-        // const prevStatus = status;
-        // chatRoomContext
-        //     .leaveChatRoom(chatRoom)
-        //     .then(res => {
-
-        //     })
-        //     .catch(err => {
-        //         console.log(err);
-        //         setStatus(prevStatus);
-        //     });
-    };
-
   return (
-    <article key = {chatRoom.id} className={styles["chat-info"]}>
-        <div className={[styles["chat-room-name"], selectedRoom && selectedRoom.id === chatRoom.id ? styles["selected"] : null].join(' ')} onClick={handleSelection}>{chatRoom.name}</div>
+    <article key = {chatRoom.id} className={[styles["chat-info"], selectedRoom && selectedRoom.id === chatRoom.id ? styles["selected"] : null].join(' ')}>
+        <div className={styles["chat-room-name"]} onClick={handleSelection}>
+        {chatRoom.chatName}
+        </div>
         <div className={styles["chat-actions"]}>
         { (() => {
             switch(status){
-                case chatRoomStatus.Connected: 
-                    return (<><a href='#' onClick={handleDisconnect}>Disconnect</a><a href='#' onClick={handleLeave}>Leave</a></>);
-                case chatRoomStatus.Disconnected: 
-                    return (<><a href='#' onClick={handleConnect}>Connect</a><a href='#' onClick={handleLeave}>Leave</a></>);
-                case chatRoomStatus.Connecting:
+                case chatStatus.Connected: 
+                    return (<><a href='#' onClick={handleLeave}>Leave</a></>);
+                case chatStatus.Disconnected: 
+                    return (<><a href='#' onClick={handleConnect}>Connect</a></>);
+                case chatStatus.Connecting:
                     return (<><span>Connecting...</span></>)
-                case chatRoomStatus.Disconnecting:
-                    return (<><span>Disconnecting...</span></>)
+                case chatStatus.Leaving:
+                    return (<><span>Leaving...</span></>)
                 default:
                     return(<><span>Unknown</span></>)
         }})()}

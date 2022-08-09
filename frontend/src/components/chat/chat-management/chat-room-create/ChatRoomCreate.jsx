@@ -1,6 +1,8 @@
-import React from 'react'
+import React, { useContext, useState } from 'react'
+import { ChatRoomContext } from '../../../../context/ChatRoomContext';
 
 export default function ChatRoomCreate() {
+  const {connectChatRoom, addChatRoom} = useContext(ChatRoomContext);
   return (
     <form>
       <div>

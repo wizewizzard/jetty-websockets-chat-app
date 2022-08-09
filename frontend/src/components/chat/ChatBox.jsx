@@ -6,8 +6,8 @@ import Tabs from '../util/Tabs';
 import styles from './ChatBox.module.css'
 import ChatList from './chat-management/chat-room-list/ChatList';
 import ChatWindow from './chat-window/ChatWindow';
-import { WsConnectionProvider } from '../../context/WsConnectionContext';
 import { ChatRoomSelectionProvider } from '../../context/ChatRoomSelectionContext';
+import { ChatRoomListProvider } from '../../context/ChatRoomContext';
 
 function chatRoomSelectionReducer(prevSelection, newSelection){
 
@@ -39,7 +39,7 @@ export default function ChatBox() {
   return (
     <>
     <ChatRoomSelectionProvider>
-      <WsConnectionProvider>
+      <ChatRoomListProvider>
         <div className={styles['chat-management']}>
           <Tabs tabs = {
               [   {
@@ -69,10 +69,11 @@ export default function ChatBox() {
               ]
           } />
         </div>
-        <div className={styles['chat-container']}>
-          <ChatWindow />
-        </div>
-      </WsConnectionProvider>
+          <div className={styles['chat-container']}>
+            <ChatWindow />
+          </div>
+        
+      </ChatRoomListProvider>
       </ChatRoomSelectionProvider>
     </>
     
