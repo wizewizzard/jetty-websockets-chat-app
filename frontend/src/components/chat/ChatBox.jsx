@@ -46,26 +46,28 @@ export default function ChatBox() {
               [   {
                       name: 'Chat list',
                       content: 
-                      <>
-                          <h6>Your chat rooms</h6>
+                      <div className='flex fl-col'>
+                          <h3>Your chat rooms</h3>
+                          <div className='fl-gr-1'>
                           <ChatList />
-                      </>
+                          </div>
+                      </div>
                   },
                   {
                       name: 'Create room',
                       content: 
-                      <>
-                          <h6>Create new chat room</h6>
+                      <div className='flex fl-col'>
+                          <h3>Create new chat room</h3>
                           <ChatRoomCreate />
-                      </>
+                      </div>
                   },
                   {
                       name: 'Find room',
                       content:
-                      <>
-                          <h6>Search for chat room</h6>
+                      <div className='flex fl-col'>
+                          <h3>Search for chat room</h3>
                           <ChatRoomSearch />
-                      </>
+                      </div>
                   }
               ]
           } />

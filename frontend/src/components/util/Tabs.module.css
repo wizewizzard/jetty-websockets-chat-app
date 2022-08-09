@@ -13,10 +13,12 @@
     line-height: 30px;
 }
 .tab-content{
+    display: inline-block;
+    width: 100%;
     height: calc(100% - 30px);
 }
 .tab-name.active{
-    background-color: rgb(172, 172, 172);
+    background-color:rgb(77, 77, 77);
 }
 .hidden{
     visibility: hidden;

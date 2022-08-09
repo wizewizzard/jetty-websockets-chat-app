@@ -19,6 +19,8 @@
 }
 .chat-window {
     flex: auto;
+    display: flex;
+    flex-direction: column-reverse;
     max-height: calc(100% - 60px);
     background: #2f323b;
     overflow: auto;
@@ -52,6 +54,10 @@
     padding: 2px 0 0 0;
     margin: 10px;
     transition: all 0.15s ease-in-out;
+}
+.chat-input button.good{
+    background: rgb(233, 110, 39);
+    cursor: pointer;
 }
 .chat-input input[good] + button {
     box-shadow: 0 0 2px rgba(0,0,0,.12),0 2px 4px rgba(0,0,0,.24);
@@ -130,4 +136,15 @@
 }
 .msg-self .timestamp {
     text-align: right;
+}
+.message-history-requester{
+    height: 50px;
+    line-height: 50px;
+    font-size: 1.2em;
+    text-align: center;
+    flex: 0 0 50px;
+    font-weight: bolder;
+    background-color: #5b5e6c;
+    margin: 5px 0px;
+    border-radius: 6px;
 }
