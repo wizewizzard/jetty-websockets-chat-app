@@ -1,74 +1,70 @@
-import { chatRooms } from "../mocks/chatRooms";
-import { mockMessages } from "../mocks/messages";
+import AuthService from "./AuthService";
 
 class ChatService{
-
-    getUserChatRooms(){
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-              resolve(
-                {
-                    status: 200,
-                    json: () =>  new Promise((resolve, reject) => {
-                        resolve(chatRooms)
-                    })
-                }
-            )
-            }, 1500);
-            
-        })
-    }
-
-    findChatRooms({criteria}){
-      return new Promise((resolve, reject) => {
-        setTimeout(() => {
-          resolve(
-            {
-                status: 200,
-                json: () =>  new Promise((resolve, reject) => {
-                    resolve(chatRooms)
-                })
+    authURL = '/api/auth';
+    getUsersChatRooms({userId}){
+        return fetch('/api/chat/membership?'  + `user=${userId}`, {
+            method: 'GET',
+            headers: {
+                "Accept": "application/json",
+                'Authorization': 'Bearer ' + AuthService.getToken()
             }
-        )
-        }, 1500);
-        
-    })
+        });
     }
 
-    getChatHistory(params){
-        const {chatId, depth = 20} = params;
-        return new Promise((resolve, reject) => {
-          setTimeout(() => {
-            resolve(
-              {
-                  status: 200,
-                  json: () =>  new Promise((resolve, reject) => {
-                      resolve(mockMessages)
-                  })
-              }
-          )
-          }, 1500);
-          
-      })
+    findChatRooms(criteria){
+        return fetch('/api/chat/search?' + `name=${criteria.chatName}`, {
+            method: 'GET',
+            headers: {
+                "Accept": "application/json",
+                'Authorization': 'Bearer ' + AuthService.getToken()
+            }
+        });
     }
 
-    createChatRoom(){
-
+    getChatHistory({id, untilDateExcluded = new Date().toISOString(), depth = 20}){
+        return fetch('/api/chat/history?' + `chat=${id}&date=${untilDateExcluded}&depth=${depth}`, {
+            method: 'GET',
+            headers: {
+                "Accept": "application/json",
+                'Authorization': 'Bearer ' + AuthService.getToken()
+            }
+        });
     }
 
-    connectToChatRoom(){
-        
+    createChatRoom({chatName}){
+        return fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+                "Accept": "application/json",
+                'Authorization': 'Bearer ' + AuthService.getToken()
+            },
+            body: JSON.stringify({chatName})
+        });
     }
 
-    disconnectFromChatRoom(){
-
+    connectChatRoom({id}){
+        return fetch(`/api/chat/membership/${id}`, {
+            method: 'POST',
+            headers: {
+                "Accept": "application/json",
+                'Authorization': 'Bearer ' + AuthService.getToken()
+            }
+        });
     }
 
-    leaveChatRoom(){
-
+    leaveChatRoom({id}){
+        return fetch(`/api/chat/membership/${id}`, {
+            method: 'DELETE',
+            headers: {
+                "Accept": "application/json",
+                'Authorization': 'Bearer ' + AuthService.getToken()
+            }
+        });
     }
     
 
 }
+
 
 export default new ChatService();
