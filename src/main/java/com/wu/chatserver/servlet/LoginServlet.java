@@ -40,7 +40,7 @@ public class LoginServlet extends HttpServlet {
         try{
             UserDTO.Request.Login login = mapper.readValue(req.getReader(), UserDTO.Request.Login.class);
             if(!validate(login)) {
-                resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "userName and password are mandatory");
+                resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "User name and password are mandatory");
                 return;
             }
             UserDTO.Response.UserLogin userLoginResp = userService.loginUser(login);
