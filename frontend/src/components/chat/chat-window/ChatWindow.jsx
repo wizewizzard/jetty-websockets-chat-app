@@ -53,7 +53,7 @@ export default function ChatWindow(){
                         return (
                             <article key={i} className={[styles["msg-container"], m.createdBy === 'Bob' ? styles['msg-remote'] : styles['msg-self']].join(' ')} id="msg-0">
                                 <div className={styles['msg-box']}>
-                                    <img className={styles['user-img']} id="user-0" src="https://via.placeholder.com/50" />
+                                                        <img className={styles['user-img']} id="user-0" src="https://placehold.co/50" />
                                     <div className={styles['flr']}>
                                         <p className={styles.msg} id="msg-0">
                                             {m.body}

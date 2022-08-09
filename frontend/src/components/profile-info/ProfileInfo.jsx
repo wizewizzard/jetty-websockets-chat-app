@@ -1,14 +1,12 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
 
 import styles from './ProfileInfo.module.css'
 
 export default function ProfileInfo({userName}) {
-  console.log('Rendering profile component')
   return (
     <article className={styles["profile-container"]}>
         <div className={styles["profile-info-box"]}>
-            <img src="https://via.placeholder.com/80"/>
+            <img src="https://placehold.co/80"/>
             <div className={styles["username"]}>
               {userName}
             </div>
