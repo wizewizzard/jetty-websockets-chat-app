@@ -3,8 +3,8 @@ import { BrowserRouter as Router, Route, Routes, useNavigate } from 'react-route
 
 import './App.css';
 import AppContainer from './components/AppContainer';
-import SignIn from './components/signin/SignIn';
-import SignUp from './components/signup/SignUp';
+import SignIn from './components/static/SignIn';
+import SignUp from './components/static/SignUp';
 import Header from './components/static/Header';
 
 
@@ -16,8 +16,9 @@ function App() {
           <Header />
           <div className='content'>
             <Routes >
-              <Route path= "/signin" element={<SignIn />} />
-              <Route path= "/signup" element={<SignUp />} />
+                  <Route path= "/error" element={<Error />} />
+                  <Route path= "/signin" element={<SignIn />} />
+                  <Route path= "/signup" element={<SignUp />} /> 
               <Route path='/' element={<AppContainer />} />
             </Routes>
           </div>

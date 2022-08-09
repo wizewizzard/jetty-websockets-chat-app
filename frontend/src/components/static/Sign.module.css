@@ -1,0 +1,31 @@
+.sign-container{
+    text-align: center;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    grid-column-gap: 0px;
+    grid-row-gap: 0px;
+    flex-grow: 1;
+}
+    
+.form-column {
+    height: 100%;
+    grid-area: 1 / 2 / 4 / 3; 
+}
+.form-column form{
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: baseline;
+    flex-flow: row no-wrap;
+    align-items: center;
+    justify-content:center;
+}
+.form-column form > * {
+    margin: 0.4em 0px;
+}

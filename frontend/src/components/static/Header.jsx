@@ -6,7 +6,7 @@ export default function Header() {
         <div className="header">
           <Link to='/'>
             <div className="logo">
-              <img src="/message-mail-svgrepo-com.svg"></img>
+              <img src="/message-logo.svg"></img>
               <div>Chat app</div>
             </div>
           </Link>
