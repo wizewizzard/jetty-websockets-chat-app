@@ -102,7 +102,13 @@ public class DataSourceConfig {
 
             @Override
             public List<String> getManagedClassNames() {
-                return Collections.emptyList();
+                //return Collections.emptyList();
+                return List.of(
+                        "com.wu.chatserver.domain.User",
+                        "com.wu.chatserver.domain.ChatRoom",
+                        "com.wu.chatserver.domain.Message",
+                        "com.wu.chatserver.domain.UsersChatSession"
+                        );
             }
 
             @Override
