@@ -1,42 +1,83 @@
-import { useEffect, useState, useContext, useRef } from 'react';
+import { useEffect, useCallback, useState, useContext, useRef, useMemo, useReducer } from 'react';
 import { ChatRoomSelectionContext } from '../../../context/ChatRoomSelectionContext';
 import ChatService from '../../../service/ChatService';
 import Loader from '../../static/Loader';
 import ChatInput from './ChatInput';
 import styles from './ChatWindow.module.css'
 import { AuthContext } from '../../../context/AuthContext';
+import ConnectionBox from './ConnectionBox';
+import { MessagingContext } from '../../../context/MessageStorageContext';
 
+const messagesReducer = (prev, data) => {
+    console.log('Prev:', prev);
+    console.log('Data:', data);
+    switch(data.action){
+        case 'replace':{
+            const list = [...data.messages];
+            return list;
+        }
+        case 'append':
+            {
+                const list = [...prev];
+                return list.concat(data.messages);
+            }
+            
+        case 'insertFirst':
+            {
+                const list = [...data.messages];
+                return list.concat(prev);
+            }  
+    }
 
+}
 
 export default function ChatWindow(){
     const [loaded, setLoaded] = useState(false);
-    const [messages, setMessages] = useState([]);
+    const [messages, setMessages] = useReducer(messagesReducer, []);
     const {selectedRoom} = useContext(ChatRoomSelectionContext);
     const {token, userName} = useContext(AuthContext);
+    const {getMessages, addMessage} = useContext(MessagingContext);
+    const [canBeQueriedMore, setCanBeQueriedMore] = useState(true);
+    const [depth, setDepth] = useState(20)
 
     useEffect(() => {
         setLoaded(false);
         if(selectedRoom){
             console.log('Room is ', selectedRoom);
-            ChatService.getChatHistory({})
-                .then(resp => {
-                    if(resp.status === 200){
-                        console.log('RESP MADE')
-                        resp.json().then(data => {
-                            setMessages(data);
-                            setLoaded(true);
-                        });                   
-                    }
-                    else{
-                        //TODO: process error
-                        setLoaded(true);
-                    }
-                });
+            getMessages({id: selectedRoom.id, untilDateExcluded: Math.floor(new Date().getTime() / 1000), depth: depth})
+            .then(messages => {
+                setMessages({action: 'replace', messages});
+                setLoaded(true);
+                setCanBeQueriedMore(messages.length >= depth);
+            })
         }
         else{
             setLoaded(true);
         }
      
+    }, [selectedRoom])
+
+    const loadMore = useCallback(() => {
+        const last = messages.slice(-1)[0];
+        let untilDateExcluded = new Date().toISOString;
+        if(last){
+            untilDateExcluded = last.publishedAt
+        }
+        getMessages({id: selectedRoom.id, untilDateExcluded: Math.floor(new Date(untilDateExcluded).getTime() / 1000), depth: 20})
+            .then(messages => {
+                if(messages && messages.length > 0){
+                    setMessages({action: 'append', messages});
+                }
+                else{
+                    setCanBeQueriedMore(false);
+                }
+            })
+            .catch(err => {
+                setCanBeQueriedMore(false);
+            });
+    },
+    [messages])
+
     }, [selectedRoom])
     
     return (
@@ -44,40 +85,41 @@ export default function ChatWindow(){
         {!loaded ? 
         <Loader visible={!loaded} message = {'Loading chat'}/>
         :
-        selectedRoom ? 
-        <>
-            <section className={styles.chatbox}>
-                <section className={styles["chat-window"]}>
-                {
-                    messages.map((m, i) => {
-                        return (
-                            <article key={i} className={[styles["msg-container"], m.createdBy === 'Bob' ? styles['msg-remote'] : styles['msg-self']].join(' ')} id="msg-0">
-                                <div className={styles['msg-box']}>
+                            selectedRoom ? 
+                            <>
+                                <section className={styles.chatbox}>
+                                    <section className={styles["chat-window"]}>
+                                    {
+                                        messages.map((m, i) => {
+                                            return (
+                                                <article key={i} className={[styles["msg-container"], m.createdBy !== userName ? styles['msg-remote'] : styles['msg-self']].join(' ')} id="msg-0">
+                                                    <div className={styles['msg-box']}>
                                                         <img className={styles['user-img']} id="user-0" src="https://placehold.co/50" />
-                                    <div className={styles['flr']}>
-                                        <p className={styles.msg} id="msg-0">
-                                            {m.body}
-                                        </p>
-                                        <span className={styles["timestamp"]}><span className={styles["username"]}>{m.createdBy}</span>&bull;<span className={styles["posttime"]}>{m.publishedAt}</span></span>
-                                    </div>
-                                </div>
-                            </article>
-                        );
-                    })
-                }
-                </section>
-                <ChatInput />
-            </section>
-        </>
-        :
-        <>
-            <div className={styles['to-start']}>
-                <h2>Connect to a chat room</h2>
-                <p>
-                    Select any chat you are connected in oder to start communication
-                </p>
-            </div>
-        </>
+                                                        <div className={styles['flr']}>
+                                                            <p className={styles.msg} id="msg-0">
+                                                                {m.body}
+                                                            </p>
+                                                            <span className={styles["timestamp"]}><span className={styles["username"]}>{m.createdBy}</span>&bull;<span className={styles["posttime"]}>{m.publishedAt}</span></span>
+                                                        </div>
+                                                    </div>
+                                                </article>
+                                            );
+                                        })
+                                    }
+                                    {canBeQueriedMore ? 
+                                    <div className={styles['message-history-requester']} onClick={loadMore}>Load more</div>
+                                    :
+                                    <div className={styles['message-history-requester']}>This is the beggining of the chat</div>}
+                                    
+                                    </section>
+                                    <ChatInput sendMessage = {sendMessage} />
+                                </section>
+                            </>
+                            :
+                            <>
+                                <ConnectionBox header={'Select a chat room'} message={'Select any chat to start communication'}/>
+                            </>
     }
-    </>);
+    </>
+    );
 }

@@ -8,6 +8,7 @@ import ChatList from './chat-management/chat-room-list/ChatList';
 import ChatWindow from './chat-window/ChatWindow';
 import { ChatRoomSelectionProvider } from '../../context/ChatRoomSelectionContext';
 import { ChatRoomListProvider } from '../../context/ChatRoomContext';
+import { MessageStorageProvider } from '../../context/MessageStorageContext';
 
 function chatRoomSelectionReducer(prevSelection, newSelection){
 
@@ -69,10 +70,11 @@ export default function ChatBox() {
               ]
           } />
         </div>
+        <MessageStorageProvider>
           <div className={styles['chat-container']}>
             <ChatWindow />
           </div>
-        
+        </MessageStorageProvider>
       </ChatRoomListProvider>
       </ChatRoomSelectionProvider>
     </>
