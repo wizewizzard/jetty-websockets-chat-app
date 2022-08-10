@@ -44,7 +44,15 @@ export default function ChatWindow(){
     const queryParams = {
         token: token
       };
-    const [socketUrl, setSocketUrl] = useState('ws://localhost:8080/wssocket/chat');
+    
+    const [socketUrl, setSocketUrl] = useState(() => {
+        if (window.location.protocol === "https:") {
+            return `wss://${window.location.hostname}/wssocket/chat`
+        }
+        else{
+            return `ws://${window.location.hostname}/wssocket/chat`
+        }
+    });
 
     //TODO: close connection when unmounts
     const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl, {queryParams});
