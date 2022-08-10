@@ -45,7 +45,6 @@ export default function ChatList() {
     }, []);
 
     useEffect(() => {
-      console.log('chatRoomList: ', chatRoomList)
       setChatRooms(chatRoomList);
     }, [chatRoomList]);
     

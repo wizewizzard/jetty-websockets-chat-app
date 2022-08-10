@@ -10,8 +10,6 @@ import ConnectionBox from './ConnectionBox';
 import { MessagingContext } from '../../../context/MessageStorageContext';
 
 const messagesReducer = (prev, data) => {
-    console.log('Prev:', prev);
-    console.log('Data:', data);
     switch(data.action){
         case 'replace':{
             const list = [...data.messages];
@@ -50,7 +48,6 @@ export default function ChatWindow(){
             return `wss://${window.location.hostname}/wssocket/chat`
         }
         else{
-            console.log('Creating up ws websocket')
             return `ws://${window.location.hostname}:8080/wssocket/chat`
         }
     });
@@ -61,7 +58,6 @@ export default function ChatWindow(){
     useEffect(() => {
         setLoaded(false);
         if(selectedRoom){
-            console.log('Room is ', selectedRoom);
             getMessages({id: selectedRoom.id, untilDateExcluded: Math.floor(new Date().getTime() / 1000), depth: depth})
             .then(messages => {
                 setMessages({action: 'replace', messages});
@@ -99,7 +95,6 @@ export default function ChatWindow(){
     useEffect(() => {
         if(lastMessage != null){
             const msg = JSON.parse(lastMessage.data);
-            console.log(msg)
             addMessage(msg);
             if(selectedRoom != null && selectedRoom.id === msg.chatId) 
                 setMessages({action: 'insertFirst', messages: [msg]})

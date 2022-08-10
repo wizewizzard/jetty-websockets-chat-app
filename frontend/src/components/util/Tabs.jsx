@@ -3,7 +3,6 @@ import React, {useState} from 'react'
 import styles from './Tabs.module.css'
 export default function Tabs({tabs, activeTab = tabs[0]}) {
     const [active, setActive] = useState(activeTab);
-    console.log('Active tab is: ', active);
     return (
         <>
             <div className={styles['tab-names']}>

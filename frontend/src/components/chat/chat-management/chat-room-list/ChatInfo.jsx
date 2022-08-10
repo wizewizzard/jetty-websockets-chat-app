@@ -35,7 +35,6 @@ export default function ChatInfo({chatRoom}) {
                 setStatus(chatStatus.Connected);
             })
             .catch(err => {
-                console.log(err);
                 setStatus(prevStatus);
             })
             
@@ -52,7 +51,6 @@ export default function ChatInfo({chatRoom}) {
                 setStatus(chatStatus.Disconnected);
             })
             .catch(err => {
-                console.log(err);
                 setStatus(prevStatus);
             });
     };

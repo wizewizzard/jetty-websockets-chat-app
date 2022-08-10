@@ -14,7 +14,6 @@ export default function AppContainer() {
     const {userName, loggedIn, verifyToken, logOut} = useContext(AuthContext);
 
     const handleLogout = () => {
-        //TODO: close all connections
         logOut().then(res => {
             navigate('/');
         })
@@ -24,7 +23,6 @@ export default function AppContainer() {
     }
 
     useEffect(() => {
-        console.log("Verifying the token");
         verifyToken()
         .then(res => {
             setLoaded(true);

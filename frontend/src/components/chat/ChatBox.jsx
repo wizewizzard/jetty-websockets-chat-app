@@ -10,34 +10,10 @@ import { ChatRoomSelectionProvider } from '../../context/ChatRoomSelectionContex
 import { ChatRoomListProvider } from '../../context/ChatRoomContext';
 import { MessageStorageProvider } from '../../context/MessageStorageContext';
 
-function chatRoomSelectionReducer(prevSelection, newSelection){
-
-}
-
-function chatRoomListReducer(prevList, action){
-  switch (action.type){
-    case 'connect': 
-      console.log('Connecting to chat room');
-      break;
-    case 'disconnect':
-      console.log('Disconnecting from the chat room');
-      break;
-    case 'leave':
-      console.log('Leaving the chat room');
-      break;
-  }
-}
-
 const ChatManagementContext = createContext();
 
 export default function ChatBox() {
-
-  useEffect(() => {
-    console.log('ChatBox render');
-  })
-  
-
-  return (
+return (
     <>
     <ChatRoomSelectionProvider>
       <ChatRoomListProvider>

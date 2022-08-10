@@ -27,7 +27,6 @@ const AuthContextProvider = ({children}) => {
                 .then(resp => {
                     if(resp.status === 200){
                         resp.json().then(data => {
-                            console.log('Token received from server: ', data.token);
                             setToken(data.token);
                             setUserId(data.id);
                             setUserName(data.userName);
@@ -68,7 +67,6 @@ const AuthContextProvider = ({children}) => {
                     });
                 }
                 else{
-                    console.log('Not verified')
                     setLoggedIn(false);
                     reject('Not verified');
                 }

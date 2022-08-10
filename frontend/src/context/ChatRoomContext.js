@@ -17,10 +17,8 @@ const connectionReducer = (prevList, action) => {
       case 'sync': 
         return action.chatRooms;
       case 'add': 
-        console.log('Connecting to chat room');
         return [...prevList, action.chatRoom];
       case 'remove':
-        console.log('Disconnecting from the chat room');
         return prevList.filter(e => e.id !== action.chatRoom.id);
     }
 }
@@ -41,7 +39,6 @@ const ChatRoomListProvider = ({children}) => {
     }
 
     const connectChatRoom = (chatRoom) => {
-        console.log(`Connection to chat room ${chatRoom.id}`, );
         return new Promise((resolve, reject) => {
             ChatService
             .connectChatRoom({id: chatRoom.id})
@@ -62,7 +59,6 @@ const ChatRoomListProvider = ({children}) => {
     }
 
     const leaveChatRoom = (chatRoom) => {
-        console.log(`Closing connection with the room ${chatRoom}`, );
         return new Promise((resolve, reject) => {
             ChatService
             .leaveChatRoom({id: chatRoom.id})
@@ -82,10 +78,6 @@ const ChatRoomListProvider = ({children}) => {
         );
     }
 
-    const sendMessage = (message) => {
-        console.log(`Sending ${message} to the room ${this.chatRoomSelected}` );
-    }
-
     return <ChatRoomContext.Provider value={
         {
             chatRooms,
@@ -93,8 +85,7 @@ const ChatRoomListProvider = ({children}) => {
             removeChatRoom,
             synchChatRooms,
             connectChatRoom, 
-            leaveChatRoom, 
-            sendMessage
+            leaveChatRoom
         }
         }>
         {children}

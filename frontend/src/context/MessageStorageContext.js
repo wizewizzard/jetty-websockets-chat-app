@@ -25,17 +25,15 @@ const MessageStorageProvider = ({children}) => {
     const [messageStore, setMessageStore] = useReducer(messageStoreReducer, {});
 
     const getMessages = ({id, untilDateExcluded, depth}) => {
-        console.log(`Called getMessages with params: ${id} ${untilDateExcluded} ${depth}`);
+        //console.log(`Called getMessages with params: ${id} ${untilDateExcluded} ${depth}`);
         return new Promise((resolve, reject) => {
             if(messageStore[id]){
                 const storedMessages = messageStore[id].messages.filter(m => Math.floor(Date.parse(m.publishedAt + 'Z') / 1000) < untilDateExcluded);
                 if(storedMessages.length >= depth){
-                    console.log('Cached')
                     resolve(storedMessages.slice(0, depth));
                     return;
                 }
                 else{
-                    console.log("No more? ", messageStore[id].noMore)
                     if(messageStore[id].noMore){
                         resolve(storedMessages);
                         return;
@@ -49,7 +47,6 @@ const MessageStorageProvider = ({children}) => {
                     .then(resp => {
                         resp.json()
                         .then(data => {
-                            console.log(data)
                             const queriedMessages = data;
                             if(!queriedMessages || queriedMessages.length < depthRequired){
                                 setMessageStore({id, messages: queriedMessages, noMore: true});
@@ -61,7 +58,7 @@ const MessageStorageProvider = ({children}) => {
                         })
                     })
                     .catch(err => {
-                        console.log('Error', err)
+
                     })
                 }
             }
@@ -81,7 +78,6 @@ const MessageStorageProvider = ({children}) => {
                     })
                 })
                 .catch(err => {
-                    console.log('Error', err);
                     reject(err);
                     })
             }
@@ -89,12 +85,6 @@ const MessageStorageProvider = ({children}) => {
     }
 
     const addMessage = (message) => {
-        // messages.forEach(message => {
-        //     if(messageStore[message.chatId]){
-        //         messageStore[message.chatId].messages.unshift(message);
-        //     }
-        // })
-        console.log(`messageStore for ${message.chatId} BEFORE is`,  messageStore[message.chatId]);
         if(messageStore[message.chatId]){
             messageStore[message.chatId].messages.unshift(message);
         }
@@ -102,7 +92,6 @@ const MessageStorageProvider = ({children}) => {
             setMessageStore({id: message.chatId, messages: [message] });
 
         }
-        console.log(`messageStore for ${message.chatId} AFTER is`,  messageStore[message.chatId]);
     }
 
     return <MessagingContext.Provider value={{
