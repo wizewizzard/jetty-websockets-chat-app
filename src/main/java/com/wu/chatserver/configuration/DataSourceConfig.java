@@ -163,7 +163,7 @@ public class DataSourceConfig {
                 archiverPersistenceUnitInfo(),
                 ImmutableMap.<String, Object>builder()
                         .put(DIALECT, PostgreSQL82Dialect.class)
-                        .put(HBM2DDL_AUTO, Action.CREATE_DROP)
+                        .put(HBM2DDL_AUTO, Action.VALIDATE)
                         .put(SHOW_SQL, false)
                         .build());
         //return Persistence.createEntityManagerFactory("chat_persistence_unit");
