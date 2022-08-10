@@ -21,6 +21,8 @@ package com.wu.chatserver;
 import com.wu.chatserver.jwtauth.JwtAuthenticator;
 import com.wu.chatserver.jwtauth.JwtManager;
 import com.wu.chatserver.servlet.*;
+import com.wu.chatserver.servlet.mocks.SignInMockServlet;
+import com.wu.chatserver.servlet.mocks.SignUpMockServlet;
 import com.wu.chatserver.websocket.ChatSocket;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jetty.cdi.CdiDecoratingListener;
@@ -28,15 +30,14 @@ import org.eclipse.jetty.cdi.CdiServletContainerInitializer;
 import org.eclipse.jetty.security.ConstraintMapping;
 import org.eclipse.jetty.security.ConstraintSecurityHandler;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
-import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.security.Constraint;
 import org.eclipse.jetty.websocket.javax.server.config.JavaxWebSocketServletContainerInitializer;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Objects;
@@ -48,25 +49,27 @@ public class ChatServer {
         try {
             new ChatServer().run();
         } catch (Throwable t) {
-            System.out.println("Error occurred. " + t.getMessage());
+            log.error("Error occurred. " + t.getMessage());
             t.printStackTrace();
         }
     }
 
     public void run() throws Exception {
-        String workingDir = System.getProperty("user.dir");
-        int port = 8080;
-        System.out.println("Current working directory : " + workingDir);
-        Properties properties = readProperties();
+        String port = "8080";
+        if (System.getenv("PORT") != null && !System.getenv("PORT").isEmpty())
+            port = System.getenv("PORT");
 
-        Server server = new Server(port);
+        Properties properties = readProperties();
+        Server server = new Server(Integer.parseInt(port));
 
         ServletContextHandler context = new ServletContextHandler();
         context.setContextPath("/");
-        URL resource = ChatServer.class.getClassLoader().getResource("application.properties");
-        String replace = resource.toURI().toString().replace("/application.properties", "");
-        context.setBaseResource(Resource.newResource(replace));
-        // Enable Weld + CDI
+        context.setResourceBase(ChatServer.class
+                .getClassLoader()
+                .getResource("META-INF/public")
+                .toExternalForm());
+        log.info("Base resource: " + context.getResourceBase());
+
         context.setInitParameter(CdiServletContainerInitializer.CDI_INTEGRATION_ATTRIBUTE, CdiDecoratingListener.MODE);
         context.addServletContainerInitializer(new CdiServletContainerInitializer());
         context.addServletContainerInitializer(new org.jboss.weld.environment.servlet.EnhancedListener());
@@ -87,10 +90,14 @@ public class ChatServer {
             wsContainer.addEndpoint(ChatSocket.class);
         });
 
+        context.addServlet(new ServletHolder(SignUpMockServlet.class), "/signup");
+        context.addServlet(new ServletHolder(SignInMockServlet.class), "/signip");
+        context.addServlet(new ServletHolder("default", DefaultServlet.class), "/*");
+        context.setWelcomeFiles(new String[]{"index.html", "index.htm", "index.jsp"});
         context.setErrorHandler(new ErrorHandler());
         server.setHandler(context);
         server.start();
-        log.info("Server started on port {}", port);
+        log.info("Server started on port " + port);
         server.join();
     }
 
