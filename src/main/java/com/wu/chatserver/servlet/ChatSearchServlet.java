@@ -36,6 +36,8 @@ public class ChatSearchServlet extends HttpServlet {
             return;
         }
         List<ChatRoomDTO.Response.ChatRoomInfo> chatRoomsByName = chatRoomService.findChatRoomsByName(name);
+        resp.setContentType("application/json; charset=utf-8");
+        resp.setCharacterEncoding("UTF-8");
         PrintWriter writer = resp.getWriter();
         writer.write(mapper.writeValueAsString(chatRoomsByName));
     }

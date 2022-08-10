@@ -62,7 +62,10 @@ public class MessageHistoryServlet extends HttpServlet {
                 depth = Integer.parseInt(depthStr);
             }
             List<MessageDTO.Response.MessageWithAuthor> messageHistory = messageService.getMessageHistory(chatId, untilDT, depth);
+            resp.setContentType("application/json; charset=utf-8");
+            resp.setCharacterEncoding("UTF-8");
             PrintWriter writer = resp.getWriter();
+
             writer.write(mapper.writeValueAsString(messageHistory));
         }
         catch (DateTimeParseException | NumberFormatException e){

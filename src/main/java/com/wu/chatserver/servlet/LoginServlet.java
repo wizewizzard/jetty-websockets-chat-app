@@ -45,6 +45,8 @@ public class LoginServlet extends HttpServlet {
             }
             UserDTO.Response.UserLogin userLoginResp = userService.loginUser(login);
             resp.setStatus(HttpServletResponse.SC_OK);
+            resp.setContentType("application/json; charset=utf-8");
+            resp.setCharacterEncoding("UTF-8");
             resp.getWriter().println(mapper.writeValueAsString(userLoginResp));
         }
         catch (DatabindException exception){

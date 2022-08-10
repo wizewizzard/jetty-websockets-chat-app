@@ -43,6 +43,8 @@ public class ChatManagementServlet extends HttpServlet {
         ChatRoom chatRoom = chatRoomService.createChatRoom(create, ((JwtPrincipal) req.getUserPrincipal()).getUserId());
         ChatRoomDTO.Response.ChatRoomInfo chatRoomInfo = new ChatRoomDTO.Response.ChatRoomInfo(chatRoom.getId(), chatRoom.getName());
         resp.setStatus(HttpServletResponse.SC_CREATED);
+        resp.setContentType("application/json; charset=utf-8");
+        resp.setCharacterEncoding("UTF-8");
         PrintWriter writer = resp.getWriter();
         writer.write(mapper.writeValueAsString(chatRoomInfo));
     }
