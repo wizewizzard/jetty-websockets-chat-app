@@ -150,9 +150,9 @@ export default function ChatWindow(){
                     case ReadyState.CLOSING: 
                         return <Loader visible={!loaded} message = {'Closing'} />;
                     case ReadyState.CLOSED: 
-                        return (<ConnectionBox header={'Connection closed'} message={'May be something wrong with a server'}/>);
+                        return (<ConnectionBox header={'Connection closed'} message={'May be something is wrong with a server'}/>);
                     case ReadyState.UNINSTANTIATED: 
-                        return (<ConnectionBox header={'Connection closed'} message={'May be something wrong with a server'}/>);
+                        return (<ConnectionBox header={'Connection closed'} message={'May be something is wrong with a server'}/>);
                 }
             })()        
     }

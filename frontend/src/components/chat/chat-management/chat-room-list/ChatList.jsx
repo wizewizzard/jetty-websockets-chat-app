@@ -60,11 +60,15 @@ export default function ChatList() {
           error ? <div className='error-message'>{error.message}</div>
           :
           <section className={styles["chat-list"]}>
-            {chatRooms.map((c, i) => {
+            {chatRooms && chatRooms.length > 0 ? 
+            chatRooms.map((c, i) => {
               return(
                 <ChatInfo key = {c.id} chatRoom={c} />
               )
-            })}
+            })
+            :
+            <h5>You are not a member of any chat room. You can find one, e.g. with a name 'Default'.</h5>
+            }
           </section>
         }
       </div>

@@ -38,7 +38,7 @@ public class TestDataFiller {
         user2.setPassword(passwordEncryptor.encryptPassword("testUser2"));
         user2.setEmail("testuser2@mail.com");
         ChatRoom chatRoom1 = new ChatRoom();
-        chatRoom1.setName("Room for both users");
+        chatRoom1.setName("Default");
         chatRoom1.addMember(user1);
         chatRoom1.addMember(user2);
 
