@@ -22,7 +22,7 @@ class ChatService{
         });
     }
 
-    getChatHistory({id, untilDateExcluded = new Date().toISOString(), depth = 20}){
+    getChatHistory({id, untilDateExcluded = new Date().getTime(), depth = 20}){
         return fetch('/api/chat/history?' + `chat=${id}&date=${untilDateExcluded}&depth=${depth}`, {
             method: 'GET',
             headers: {

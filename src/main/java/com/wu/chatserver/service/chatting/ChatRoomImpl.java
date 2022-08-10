@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jboss.weld.context.activator.ActivateRequestContext;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -91,7 +92,8 @@ public class ChatRoomImpl implements ChatRoom{
                         null,
                         "System",
                         "User " +  membership.getUser().getUserName() + " is online",
-                        LocalDateTime.now()));
+                        LocalDateTime.now().atZone(ZoneId.systemDefault())
+                                .withZoneSameInstant(ZoneId.of("UTC")).toLocalDateTime()));
                 log.info("User {} was added to the chat room {}", membership.getUser().getUserName(), chatRoom.getName());
             }
             else{
@@ -114,7 +116,8 @@ public class ChatRoomImpl implements ChatRoom{
                         null,
                         "System",
                         "User "  +  membership.getUser().getUserName() + " goes offline",
-                        LocalDateTime.now()));
+                        LocalDateTime.now().atZone(ZoneId.systemDefault())
+                                .withZoneSameInstant(ZoneId.of("UTC")).toLocalDateTime()));
                 log.info("User {} was removed from the chat room {}", membership.getUser().getUserName(), chatRoom.getName());
             }
             else{
@@ -133,7 +136,8 @@ public class ChatRoomImpl implements ChatRoom{
                     source.getUser().getId(),
                     source.getUser().getUserName(),
                     message.getBody(),
-                    LocalDateTime.now());
+                    LocalDateTime.now().atZone(ZoneId.systemDefault())
+                            .withZoneSameInstant(ZoneId.of("UTC")).toLocalDateTime());
                 if(!messages.offer(m, 500, TimeUnit.MILLISECONDS)){
                     throw new TimeoutException("Unable to send message. Try again later");
                 }

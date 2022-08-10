@@ -50,7 +50,8 @@ export default function ChatWindow(){
             return `wss://${window.location.hostname}/wssocket/chat`
         }
         else{
-            return `ws://${window.location.hostname}/wssocket/chat`
+            console.log('Creating up ws websocket')
+            return `ws://${window.location.hostname}:8080/wssocket/chat`
         }
     });
 
@@ -80,7 +81,7 @@ export default function ChatWindow(){
         if(last){
             untilDateExcluded = last.publishedAt
         }
-        getMessages({id: selectedRoom.id, untilDateExcluded: Math.floor(new Date(untilDateExcluded).getTime() / 1000), depth: 20})
+        getMessages({id: selectedRoom.id, untilDateExcluded: Math.floor(Date.parse(untilDateExcluded + 'Z') / 1000), depth: 20})
             .then(messages => {
                 if(messages && messages.length > 0){
                     setMessages({action: 'append', messages});
@@ -98,6 +99,7 @@ export default function ChatWindow(){
     useEffect(() => {
         if(lastMessage != null){
             const msg = JSON.parse(lastMessage.data);
+            console.log(msg)
             addMessage(msg);
             if(selectedRoom != null && selectedRoom.id === msg.chatId) 
                 setMessages({action: 'insertFirst', messages: [msg]})
@@ -126,7 +128,10 @@ export default function ChatWindow(){
                                                             <p className={styles.msg} id="msg-0">
                                                                 {m.body}
                                                             </p>
-                                                            <span className={styles["timestamp"]}><span className={styles["username"]}>{m.createdBy}</span>&bull;<span className={styles["posttime"]}>{m.publishedAt}</span></span>
+                                                            <span className={styles["timestamp"]}>
+                                                            <span className={styles["username"]}>{m.createdBy}</span>&bull;<span className={styles["posttime"]}>{
+                                                                new Date(Date.parse(m.publishedAt + 'Z') -new Date().getTimezoneOffset()*60000).toISOString() 
+                                                                }</span></span>
                                                         </div>
                                                     </div>
                                                 </article>

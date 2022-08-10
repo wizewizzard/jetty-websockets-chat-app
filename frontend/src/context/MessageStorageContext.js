@@ -28,7 +28,7 @@ const MessageStorageProvider = ({children}) => {
         console.log(`Called getMessages with params: ${id} ${untilDateExcluded} ${depth}`);
         return new Promise((resolve, reject) => {
             if(messageStore[id]){
-                const storedMessages = messageStore[id].messages.filter(m => Math.floor(new Date(m.publishedAt).getTime() / 1000) < untilDateExcluded);
+                const storedMessages = messageStore[id].messages.filter(m => Math.floor(Date.parse(m.publishedAt + 'Z') / 1000) < untilDateExcluded);
                 if(storedMessages.length >= depth){
                     console.log('Cached')
                     resolve(storedMessages.slice(0, depth));
@@ -43,7 +43,7 @@ const MessageStorageProvider = ({children}) => {
                     let depthRequired = depth - storedMessages.length;
                     const last = storedMessages.slice(-1)[0];
                     if(last != null){
-                        untilDateExcluded = Math.floor(new Date(last.publishedAt).getTime() / 1000)
+                        untilDateExcluded = Math.floor(Date.parse(last.publishedAt + 'Z') / 1000)
                     }
                     ChatService.getChatHistory({id, untilDateExcluded, depth: depthRequired})
                     .then(resp => {
@@ -66,7 +66,7 @@ const MessageStorageProvider = ({children}) => {
                 }
             }
             else{
-                ChatService.getChatHistory({id, untilDateExcluded, depth})
+                ChatService.getChatHistory({id, untilDateExcluded: untilDateExcluded, depth})
                 .then(resp => {
                     resp.json()
                     .then(data => {
