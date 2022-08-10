@@ -14,6 +14,8 @@ import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 @Slf4j
@@ -39,6 +41,9 @@ public class MessageServiceImpl implements MessageService {
         log.trace("Publishing message");
         ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId).orElseThrow();
         User user = userRepository.findById(userId).orElseThrow();
+        ZonedDateTime zonedDateTime = LocalDateTime.now()
+                .atZone(ZoneId.systemDefault());
+        LocalDateTime utc = zonedDateTime.withZoneSameInstant(ZoneId.of("UTC")).toLocalDateTime();
         if(chatRoomRepository.isUserMemberOfChatRoom(chatRoom, user)){
             EntityTransaction tx = em.getTransaction();
             try {
@@ -46,7 +51,7 @@ public class MessageServiceImpl implements MessageService {
                 chatRoom = em.merge(chatRoom);
                 Message message = new Message();
                 message.setCreatedBy(user);
-                message.setPublishedAt(LocalDateTime.now());
+                message.setPublishedAt(utc);
                 message.setBody(body);
                 chatRoom.addMessage(message);
                 chatRoomRepository.save(chatRoom);
