@@ -13,10 +13,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.ParseException;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.*;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 
@@ -52,11 +49,12 @@ public class MessageHistoryServlet extends HttpServlet {
         }
         try{
             chatId = Long.parseLong(chatIdStr);
-            LocalDateTime untilDT = LocalDateTime.now();
+            LocalDateTime untilDT = LocalDateTime.now().atZone(ZoneId.systemDefault())
+                    .withZoneSameInstant(ZoneId.of("UTC")).toLocalDateTime();
             int depth = 20;
             if(dateStr != null && !dateStr.isEmpty()){
                 long tstmp = Long.parseLong(dateStr);
-                untilDT = LocalDateTime.ofInstant(Instant.ofEpochSecond(tstmp), ZoneId.systemDefault());
+                untilDT = LocalDateTime.ofInstant(Instant.ofEpochSecond(tstmp), ZoneId.of("UTC"));
             }
             if(depthStr != null && !depthStr.isEmpty()){
                 depth = Integer.parseInt(depthStr);

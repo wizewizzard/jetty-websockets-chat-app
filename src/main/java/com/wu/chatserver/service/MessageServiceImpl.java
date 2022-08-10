@@ -68,7 +68,7 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     public List<MessageDTO.Response.MessageWithAuthor> getMessageHistory(Long chatRoomId, LocalDateTime until, int depth) {
-        log.trace("Requested message message");
+        log.info("Requested message history with params {}, {}, {}", chatRoomId, until, depth);
         ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId).orElseThrow();
         return messageRepository.findByChatBeforeDate(chatRoom, until, depth);
     }
